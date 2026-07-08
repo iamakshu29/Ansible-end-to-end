@@ -1,0 +1,12 @@
+- name: Variable sources — where can variables be defined?
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+
+  tasks:
+    - name: Print variables
+      debug: 
+        msg: "App Name is {{ app_name }}, Web Port is {{ web_port }}, DB Port is {{ db_port }}"
+
+# ansible-playbook -i inventory.yml 01_variable_source.yml --check

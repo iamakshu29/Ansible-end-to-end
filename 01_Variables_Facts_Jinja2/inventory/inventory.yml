@@ -1,0 +1,12 @@
+all:
+  vars:
+    ansible_user: ubuntu
+    ansible_porrt: 80
+  hosts:
+  children:
+    webservers:
+      hosts:
+        web01.com
+    databases:
+      hosts:
+        db01.com
