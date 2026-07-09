@@ -1,0 +1,15 @@
+jenkins:
+  systemMessage: "Provisioned by Packer"
+
+  numExecutors: 1
+
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: iamakshu
+          password: iamakshu
+
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
