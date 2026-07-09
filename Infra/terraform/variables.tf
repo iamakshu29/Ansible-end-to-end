@@ -1,11 +1,16 @@
-variable "security_group" {
-  default = any
+variable "ssh_key" {
+  type = map(any)
 }
 
-variable "ebs_attach" {
-  default = any
+variable "controller_ami_name" {
+  default = "ansible_controller_ami"
 }
 
 variable "instance" {
-  default = any
+  type = map(any)
 }
+
+variable "security_group" {
+  type = map(any)
+}
+

@@ -1,47 +1,56 @@
-security_group = {
-  controller_sg = {
-    ingress = {
-        cidr_ipv4 =
-        from_port =
-        ip_protocol = 
-        to_port = 
-    }
-    eggress = {
-        cidr_ipv4 =
-        ip_protocol= 
-    }
+ssh_key = {
+  ansible_controller = {
+    key_path = "ansible_controller.pub"
   }
-
-  managed_sg = {
-    ingress = {
-        cidr_ipv4 =
-        from_port =
-        ip_protocol = 
-        to_port = 
-    }
-    eggress = {
-        cidr_ipv4 =
-        ip_protocol = 
-    }
+  ansible_managed_node = {
+    key_path = "ansible_managed_node.pub"
   }
 }
 
 instance = {
-    ansible_controller = {
-        size = 12
-        availability_zone = "us-east-1a"
-        instance_type          = "t3.medium"
-        ami = "ansible_control_node"
-    }
-    managed_one = {
-        size = 8
-        availability_zone = "us-east-1b"
-        instance_type          = "t3.micro"
-    }
-    managed_two = {
-        size = 8
-        availability_zone = "us-east-1c"
-        instance_type          = "t3.micro"
-    }
-    
+  ansible_controller = {
+    size              = 12
+    availability_zone = "us-east-1a"
+    instance_type     = "t3.medium"
+  }
+  managed_one = {
+    size              = 8
+    availability_zone = "us-east-1b"
+    instance_type     = "t3.micro"
+  }
+  managed_two = {
+    size              = 8
+    availability_zone = "us-east-1c"
+    instance_type     = "t3.micro"
+  }
 }
+
+security_group = {
+  controller_node = {
+    ingress = {
+      cidr_ipv4   = "0.0.0.0/0"
+      from_port   = 22
+      ip_protocol = "tcp"
+      to_port     = 22
+    }
+
+    eggress = {
+      cidr_ipv4   = "0.0.0.0/0"
+      ip_protocol = "-1"
+    }
+  }
+
+  managed_node = {
+    ingress = {
+      from_port   = 22
+      ip_protocol = "tcp"
+      to_port     = 22
+    }
+
+    eggress = {
+      cidr_ipv4   = "0.0.0.0/0"
+      ip_protocol = "-1"
+    }
+  }
+}
+

@@ -9,7 +9,7 @@ packer {
 
 variable "ami_prefix" {
   type    = string
-  default = "ansible_control_node"
+  default = "ansible_controller_ami"
 }
 
 

@@ -1,31 +1,30 @@
-resource "aws_security_group" "strata_sg" {
+resource "aws_security_group" "ansible_sg" {
   for_each    = var.security_group
   name        = "${each.key}-sg"
-  description = "Allow TLS inbound traffic and all outbound traffic"
-  vpc_id      = aws_vpc.strata.id
+  description = "Allow SSH inbound traffic and all outbound traffic"
+  vpc_id      = data.aws_vpc.default.id
 
   tags = {
-    Name = "allow_tls"
+    Name = each.key
   }
 }
 
 
-resource "aws_vpc_security_group_ingress_rule" "allow_tls_ipv4_strata_server_rule" {
-  for_each = var.ingress
+resource "aws_vpc_security_group_ingress_rule" "allow_tls_ipv4_ansible_server_rule" {
+  for_each = var.security_group
 
-  security_group_id            = aws_security_group.strata_sg[each.value.sg_name].id
-  referenced_security_group_id = try(each.value.rule.source_security_group, null)
-
-  cidr_ipv4   = try(each.value.rule.cidr_ipv4, null)
-  from_port   = each.value.rule.from_port
-  ip_protocol = each.value.rule.ip_protocol
-  to_port     = each.value.rule.to_port
+  security_group_id            = aws_security_group.ansible_sg[each.key].id
+  cidr_ipv4                    = each.key == "controller_node" ? each.value.ingress.cidr_ipv4 : null
+  referenced_security_group_id = each.key == "managed_node" ? aws_security_group.ansible_sg["controller_node"].id : null
+  from_port                    = each.value.ingress.from_port
+  ip_protocol                  = each.value.ingress.ip_protocol
+  to_port                      = each.value.ingress.to_port
 }
 
-resource "aws_vpc_security_group_egress_rule" "allow_all_traffic_ipv4_strata_server_rule" {
-  for_each = var.eggress
+resource "aws_vpc_security_group_egress_rule" "allow_all_traffic_ipv4_ansible_server_rule" {
+  for_each = var.security_group
 
-  security_group_id = aws_security_group.strata_sg[each.key].id
-  cidr_ipv4         = "0.0.0.0/0"
-  ip_protocol       = "-1" # semantically equivalent to all ports
+  security_group_id = aws_security_group.ansible_sg[each.key].id
+  cidr_ipv4         = each.value.eggress.cidr_ipv4
+  ip_protocol       = each.value.eggress.ip_protocol
 }
