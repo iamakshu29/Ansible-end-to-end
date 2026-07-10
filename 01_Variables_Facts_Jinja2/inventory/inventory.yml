@@ -7,7 +7,9 @@ all:
     webservers:
       hosts:
         web01.com:
-          ansible_host: 52.3.230.254
+          ansible_host: 13.223.73.208
+        db01.com:
+          ansible_host: 54.172.87.184
 
     databases:
       hosts:
