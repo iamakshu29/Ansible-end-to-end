@@ -61,10 +61,10 @@ case "$ACTION" in
         AMI_ID=""
 
         if [[ -f manifest.json ]]; then
-            AMI_ID=$(grep '"artifact_id"' manifest.json | tail -n 1 | cut -d'"' -f4 | cut -d':' -f2)
+            AMI_ID=$(grep '"artifact_id"' manifest.json | tail -n 1 | cut -d'"' -f4 | cut -d':' -f2 | tr -d '\r')
         fi
 
-        if [[ -n "$AMI_ID" ]] && aws ec2 describe-images --image-ids "$AMI_ID" >/dev/null 2>&1; then
+        if [[ -n "$AMI_ID" ]] && [[ -n "$(aws ec2 describe-images --image-ids "$AMI_ID" --query 'Images[*].ImageId' --output text 2>/dev/null)" ]]; then
             echo "Using existing AMI: $AMI_ID"
         else
             echo "AMI not found, creating it..."
@@ -75,7 +75,7 @@ case "$ACTION" in
             echo "Building AMI using Packer, Store the output to manifest.json"
             packer build ./packer/ansible_controller_node.pkr.hcl
 
-            AMI_ID=$(grep '"artifact_id"' manifest.json | tail -n 1 | cut -d'"' -f4 | cut -d':' -f2)
+            AMI_ID=$(grep '"artifact_id"' manifest.json | tail -n 1 | cut -d'"' -f4 | cut -d':' -f2 | tr -d '\r')
         fi
 
         if [[ -z "$AMI_ID" ]]; then
@@ -107,7 +107,7 @@ case "$ACTION" in
                 exit 1
             fi
 
-            AMI_ID=$(grep '"artifact_id"' manifest.json | tail -n 1 | cut -d'"' -f4 | cut -d':' -f2)
+            AMI_ID=$(grep '"artifact_id"' manifest.json | tail -n 1 | cut -d'"' -f4 | cut -d':' -f2 | tr -d '\r')
 
             if [[ -n "$AMI_ID" ]]; then
                 echo "Deleting AMI: $AMI_ID"
