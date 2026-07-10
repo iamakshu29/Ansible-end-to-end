@@ -13,7 +13,6 @@ The project demonstrates:
 * AWS Secrets Manager
 * Ansible
 * Dynamic Inventory
-* CI/CD
 
 The goal is to provision infrastructure, configure servers using Ansible, and destroy the infrastructure when finished to minimize AWS costs.
 
@@ -22,37 +21,33 @@ The goal is to provision infrastructure, configure servers using Ansible, and de
 # Architecture
 
 ```text
-                        GitHub Repository
-                               │
-                               ▼
-                    Packer Build (One Time)
-                               │
-                               ▼
-                   Jenkins Control Node AMI
-                               │
-                               ▼
-                     Terraform (Control Node)
-                               │
-                               ▼
-                    Jenkins Control Node EC2
-                               │
-                               ▼
-                 Jenkins Multibranch Pipeline
-                               │
-          ┌────────────────────┴────────────────────┐
-          │                                         │
-          ▼                                         ▼
- Terraform Apply                           Terraform Destroy
-   (Worker Nodes)                             (Worker Nodes)
-          │
-          ▼
- AWS EC2 Dynamic Inventory
-          │
-          ▼
-    Ansible Playbooks
-          │
-          ▼
-     Configure Servers
+          ansible_nodes_setup.sh
+                    │
+       ┌────────────┴────────────┐
+       │                         │
+       ▼                         ▼
+  Packer Build              Terraform Apply
+  (One Time)                     │
+       │               ┌─────────┴─────────┐
+       ▼               │                   │
+  Controller AMI  1 Controller EC2     2 Managed Node EC2s
+                        │
+                        ▼
+              Jenkins (on Controller) + credentials through AWS Secrets Manager
+                        │
+                        ▼
+               Checkout GitHub Repo
+               (no manual clone needed)
+                        │
+                        ▼
+              Run Ansible Playbooks
+                        │
+                        ▼
+         AWS EC2 Dynamic Inventory
+         (discovers managed nodes by tag)
+                        │
+                        ▼
+             Configure Managed Nodes
 ```
 
 ---
@@ -60,200 +55,112 @@ The goal is to provision infrastructure, configure servers using Ansible, and de
 # Project Structure
 
 ```text
-ansible-lab/
+Ansible/
 │
-├── packer/
-│   ├── control-node.pkr.hcl
-│   └── scripts/
-│       ├── install_java.sh
-│       ├── install_jenkins.sh
-│       ├── install_ansible.sh
-│       ├── install_terraform.sh
-│       ├── install_git.sh
-│       └── install_awscli.sh
+├── Infra/
+│   ├── ansible_nodes_setup.sh     ← single entry point (apply / destroy)
+│   ├── manifest.json              ← packer AMI output
+│   ├── packer/
+│   │   ├── ansible_controller_node.pkr.hcl
+│   │   ├── install_tools.sh
+│   │   └── jenkins.yaml
+│   └── terraform/
+│       ├── ec2.tf                 ← provisions controller + managed nodes
+│       ├── sg.tf
+│       ├── role_and_policy.tf
+│       └── variables.tf
 │
-├── terraform/
-│   ├── control-node/
-│   └── workers/
+├── Jenkins_Pipeline/
+│   └── Jenkinsfile                ← checkout repo + run ansible playbook
 │
-├── ansible/
-│   ├── inventory/
-│   ├── playbooks/
-│   ├── group_vars/
-│   └── roles/
-│
-├── Jenkinsfile
-│
-├── README.md
-│
-└── docs/
+└── <module folders>/
+    ├── playbooks
+    ├── inventory/
+    └── roles/
 ```
 
 ---
 
-# Build Roadmap
+# Roadmap
 
-## Phase 1 – Build the Control Node Image
+## Phase 1 – Infrastructure Provisioning ✅ (Automated)
 
-### Goal
+Handled entirely by `ansible_nodes_setup.sh`.
 
-Create a reusable AMI containing all required DevOps tools.
+**apply:**
+1. Checks AWS CLI, Packer, Terraform are available
+2. Builds controller AMI with Packer (skipped if AMI already exists in `manifest.json`)
+3. Provisions controller EC2 + managed node EC2s with Terraform in a single apply
 
-### Install
-
-* Java
-* Jenkins
-* Git
-* Terraform
-* AWS CLI
-* Ansible
-* Python
-* Required Ansible Collections
-
-### Configure
-
-* Jenkins plugins
-* Multibranch Pipeline
-* GitHub connection
-* IAM Role
-* AWS CLI
-* Ansible
-
-### Output
-
+**destroy:**
+```bash
+./ansible_nodes_setup.sh destroy            # keeps AMI
+./ansible_nodes_setup.sh destroy --delete-ami  # also deregisters AMI + snapshots
 ```
-Golden AMI
-```
+
+AMI includes: Java, Jenkins, Ansible, Terraform, AWS CLI, Git, Python, required collections.
 
 ---
 
-## Phase 2 – Launch the Control Node
+## Phase 2 – Jenkins Pipeline Setup
 
-Terraform should:
+Jenkins runs on the controller node (provisioned above).
 
-* Create Security Group
-* Create and Attach IAM Role
-* Launch EC2 from the Packer AMI
-* Output Jenkins URL
+**Purpose:** Auto-checkout the GitHub repo and run Ansible playbooks — no need to manually SSH and clone.
 
-Result:
+**Pipeline does:**
+* Checkout repo from GitHub using stored credentials
+* Validate Ansible is available on the agent
+* Run the specified playbook against dynamic inventory
 
-```
-Control Node Ready
-```
+**Parameters (passed at runtime):**
 
----
+| Parameter | Default | Description |
+|---|---|---|
+| `PLAYBOOK_PATH` | `01_.../01_variable_sources.yml` | Path to playbook |
+| `INVENTORY_PATH` | `01_.../inventory/inventory.yml` | Path to inventory |
+| `TAG_NAME` | `project` | AWS tag key for dynamic inventory |
+| `TAG_VALUE` | `strata` | AWS tag value for dynamic inventory |
 
-## Phase 3 – Repository Setup
-
-Repository should contain:
-
-* Jenkinsfile
-* Terraform
-* Ansible
-* Packer
-
-The Jenkins Multibranch Pipeline should automatically detect the branch.
-
-No manual Git checkout should be required.
+Jenkins does **not** manage infrastructure. Terraform is only run via the shell script.
 
 ---
 
-## Phase 4 – Secrets Management
+## Phase 3 – Secrets Management
 
-Do **not** store secrets in Jenkins.
+Do **not** store secrets in Jenkins credentials where avoidable.
 
 Use AWS Secrets Manager for:
 
-* GitHub Personal Access Token (if required)
-* SSH Private Key
+* SSH Private Key (for Ansible to connect to managed nodes)
+* GitHub Personal Access Token (if repo is private)
 * Any additional credentials
 
-The Jenkins pipeline retrieves secrets during execution.
+The Jenkins pipeline retrieves secrets during execution via IAM Role attached to the controller EC2.
 
 ---
 
-## Phase 5 – Worker Infrastructure
+## Phase 4 – Dynamic Inventory
 
-Terraform provisions:
+Configure the AWS EC2 Inventory Plugin on the controller.
 
-* Worker Node 1
-* Worker Node 2
+Inventory automatically discovers EC2 instances using tags set during Terraform provisioning.
 
-The instances should include tags for Ansible Dynamic Inventory.
-
----
-
-## Phase 6 – Dynamic Inventory
-
-Configure the AWS EC2 Inventory Plugin.
-
-Inventory should automatically discover EC2 instances using tags.
-
-Example:
+Example tags:
 
 ```
 Environment = Lab
 Role = Worker
 ```
 
-No static inventory file should be maintained.
-
----
-
-## Phase 7 – Jenkins Pipeline
-
-Pipeline flow:
-
-```
-Start
-
-↓
-
-Checkout Repository
-
-↓
-
-Terraform Init
-
-↓
-
-Terraform Apply
-
-↓
-
-Wait for EC2 Boot
-
-↓
-
-Verify SSH Connectivity
-
-↓
-
-Generate Dynamic Inventory
-
-↓
-
-Run Ansible Playbook
-
-↓
-
-Validate Configuration
-
-↓
-
-(Optional) Terraform Destroy
-
-↓
-
-Finish
-```
+No static inventory file should be maintained for managed nodes.
 
 ---
 
 # Future Enhancements
 
 * Parameterized Jenkins builds
+* Trigger Jenkins pipeline via REST API (platform engineer style — no UI)
 * Optional Infrastructure Cleanup
 * Slack Notifications
 * Email Notifications
@@ -270,52 +177,44 @@ Finish
 
 Build the project in this sequence:
 
-* [ ] Create GitHub Repository
-* [ ] Learn basic Terraform
-* [ ] Build Control Node with Packer
-* [ ] Create Control Node using Terraform
+* [x] Write Packer template (controller AMI)
+* [x] Write Terraform (controller + managed nodes)
+* [x] Write `ansible_nodes_setup.sh` (single entry point)
+* [x] Configure IAM Role + Security Groups
 * [ ] Configure Jenkins Multibranch Pipeline
-* [ ] Configure AWS IAM Roles
-* [ ] Configure AWS Secrets Manager
-* [ ] Create Worker Nodes using Terraform
-* [ ] Configure AWS Dynamic Inventory
-* [ ] Learn Ansible Basics
-* [ ] Execute First Playbook
-* [ ] Build Ansible Roles
-* [ ] Destroy Infrastructure
-* [ ] Automate Complete Workflow
+* [ ] Configure AWS Secrets Manager (SSH key, GitHub PAT)
+* [ ] Configure AWS EC2 Dynamic Inventory
+* [ ] Write and execute Ansible Playbooks
+* [ ] Trigger Jenkins pipeline via REST API (no UI required)
+* [ ] Destroy infrastructure when done
 
 ---
 
 # End-to-End Workflow
 
 ```
-Developer pushes code
+./ansible_nodes_setup.sh apply
         │
         ▼
-GitHub
+Packer builds Controller AMI (once)
         │
         ▼
-Jenkins Multibranch Pipeline
+Terraform provisions Controller + Managed Nodes
         │
         ▼
-Terraform Apply
+Jenkins on Controller checks out GitHub Repo
         │
         ▼
-Worker EC2 Instances Created
+Jenkins runs Ansible Playbook
         │
         ▼
-Dynamic Inventory Discovers Hosts
+Dynamic Inventory discovers Managed Nodes by tag
         │
         ▼
-Ansible Executes Playbooks
+Managed Nodes configured
         │
         ▼
-Infrastructure Configured
-        │
-        ▼
-(Optional)
-Terraform Destroy
+./ansible_nodes_setup.sh destroy (--delete-ami)
 ```
 
 ---
