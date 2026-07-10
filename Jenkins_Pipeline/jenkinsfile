@@ -28,46 +28,6 @@ pipeline{
             }
         }
 
-        stage("Build AMI using Packer"){
-            steps{
-                echo "Building Ansible Controller AMI"
-            }
-        }
-
-        stage("Initializing Terraform"){
-            steps{
-                sh "terraform init"
-            }
-        }
-
-        stage("Validating Terraform"){
-            steps{
-                sh "terraform validate"
-            }
-        }
-
-        stage("Planning Terraform Infra for Managed Nodes"){
-            steps{
-                sh "terraform plan -out=tfplan"
-            }
-        }
-
-        stage("Applying Terraform Infra for Managed Nodes"){
-            input {
-                DO you want to apply the infra
-            }
-            steps{
-                sh "terraform apply -plan=tfplan"
-            }
-        }
-
-        stage("Destroyinh Terraform Infra for Managed Nodes"){
-            choice { do you want to destroy infra }
-            steps{
-                sh "terraform destroy -plan=tfplan"
-            }
-        }
-
         stage('Validate Agent') {
             steps {
                 sh '''

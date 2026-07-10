@@ -22,14 +22,9 @@ source "amazon-ebs" "ubuntu" {
 
     owners = ["099720109477"] # Canonical
 
-    filter {
-      name   = "name"
-      values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
-    }
-
-    filter {
-      name   = "virtualization-type"
-      values = ["hvm"]
+    filters = {
+      name                = "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"
+      virtualization-type = "hvm"
     }
   }
   ssh_username = "ubuntu"
@@ -42,11 +37,11 @@ build {
   ]
 
   provisioner "shell" {
-    script = "install_tools.sh"
+    script = "${path.root}/install_tools.sh"
   }
 
   provisioner "file" {
-    source      = "plugins.txt"
+    source      = "${path.root}/plugins.txt"
     destination = "/tmp/plugins.txt"
   }
 
@@ -58,18 +53,28 @@ build {
   }
 
   provisioner "file" {
-  source      = "jenkins.yaml"
+  source      = "${path.root}/jenkins.yaml"
   destination = "/tmp/jenkins.yaml"
   }
 
   provisioner "shell" {
-    inline = [
-      "sudo mv /tmp/jenkins.yaml /var/lib/jenkins/jenkins.yaml",
-      "sudo chown jenkins:jenkins /var/lib/jenkins/jenkins.yaml",
-      "sudo mkdir -p /etc/systemd/system/jenkins.service.d",
-      "printf '[Service]\nEnvironment=\"CASC_JENKINS_CONFIG=/var/lib/jenkins/jenkins.yaml\"\n' | sudo tee /etc/systemd/system/jenkins.service.d/override.conf",
-      "sudo systemctl daemon-reload",
-      "sudo systemctl restart jenkins"
-    ]
+  inline = [
+    "sudo mv /tmp/jenkins.yaml /var/lib/jenkins/jenkins.yaml",
+    "sudo chown jenkins:jenkins /var/lib/jenkins/jenkins.yaml",
+    <<EOF
+sudo mkdir -p /etc/systemd/system/jenkins.service.d
+cat <<EOT | sudo tee /etc/systemd/system/jenkins.service.d/override.conf
+[Service]
+Environment="CASC_JENKINS_CONFIG=/var/lib/jenkins/jenkins.yaml"
+EOT
+EOF
+,
+    "sudo systemctl daemon-reload",
+    "sudo systemctl restart jenkins"
+  ]
+}
+
+   post-processor "manifest" {
+    output = "manifest.json"
   }
 }

@@ -2,8 +2,9 @@ variable "ssh_key" {
   type = map(any)
 }
 
-variable "controller_ami_name" {
-  default = "ansible_controller_ami"
+variable "controller_ami_id" {
+  description = "AMI ID for the Ansible controller node"
+  type        = string
 }
 
 variable "instance" {

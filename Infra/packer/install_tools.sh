@@ -1,4 +1,17 @@
 #!/bin/bash
+
+###############################################################################
+# Script Name : install_tools.sh
+# Description : Install Tools require to run jenkins pipeline and Ansible
+# Version     : 1.0.0
+# Author      : Akshat Verma
+# Created     : 2026-07-10
+# Last Updated: 2026-07-10
+# License     : MIT
+# Usage       : 
+# Requirements: 
+###############################################################################
+
 set -e
 
 
@@ -85,3 +98,11 @@ else
 fi
 echo "Jenkins version"
 dpkg -s jenkins | grep Version
+
+echo "Installing Jenkins Plugin Manager CLI"
+sudo wget https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.13.2/jenkins-plugin-manager-2.13.2.jar -O /opt/jenkins-plugin-manager.jar
+cat << 'EOF' | sudo tee /usr/local/bin/jenkins-plugin-cli
+#!/bin/bash
+java -jar /opt/jenkins-plugin-manager.jar -d /var/lib/jenkins/plugins "$@"
+EOF
+sudo chmod +x /usr/local/bin/jenkins-plugin-cli

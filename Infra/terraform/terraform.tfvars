@@ -27,12 +27,20 @@ instance = {
 
 security_group = {
   controller_node = {
-    ingress = {
-      cidr_ipv4   = "0.0.0.0/0"
-      from_port   = 22
-      ip_protocol = "tcp"
-      to_port     = 22
-    }
+    ingress = [
+      {
+        cidr_ipv4   = "0.0.0.0/0"
+        from_port   = 22
+        ip_protocol = "tcp"
+        to_port     = 22
+      },
+      {
+        cidr_ipv4   = "0.0.0.0/0"
+        from_port   = 8080
+        ip_protocol = "tcp"
+        to_port     = 8080
+      }
+    ]
 
     eggress = {
       cidr_ipv4   = "0.0.0.0/0"
@@ -41,11 +49,13 @@ security_group = {
   }
 
   managed_node = {
-    ingress = {
-      from_port   = 22
-      ip_protocol = "tcp"
-      to_port     = 22
-    }
+    ingress = [
+      {
+        from_port   = 22
+        ip_protocol = "tcp"
+        to_port     = 22
+      }
+    ]
 
     eggress = {
       cidr_ipv4   = "0.0.0.0/0"

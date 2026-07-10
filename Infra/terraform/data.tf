@@ -14,16 +14,6 @@ data "aws_ami" "ubuntu" {
   }
 }
 
-data "aws_ami" "ansible_controller" {
-  most_recent = true
-  owners      = ["self"]
-
-  filter {
-    name   = "name"
-    values = [var.controller_ami_name]
-  }
-}
-
 data "aws_vpc" "default" {
   default = true
 }
