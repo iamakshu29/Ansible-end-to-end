@@ -11,10 +11,6 @@
     - name: "Get the Distribution"
       debug:
         msg: "Distribution: {{ ansible_facts['distribution'] }}"
-      
-    - name: "Get the default IPv4"
-      debug:
-        msg: ansible_facts['default_ipv4']
 
     - name: "Get the default IPv4 address"
       debug:
