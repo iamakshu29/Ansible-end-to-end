@@ -22,5 +22,6 @@
 
     - name: Using other hosts variables in another host
       debug:
-        msg: "db_port is {{ hostvars['db01.com']['db_port'] }}"
-        msg: "{{ hostvars[groups['databases'][0]]['db_port'] }}"
+        msg: 
+          - "db_port is {{ hostvars['db01.com']['db_port'] }}"
+          - "db_port is {{ hostvars[groups['databases'][0]]['db_port'] }}"
