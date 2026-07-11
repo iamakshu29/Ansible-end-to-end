@@ -1,2 +1,10 @@
 app_name: ubuntu
-app_env: dev
+web_port: 22
+app_env: local
+servers:
+  - name: local01
+    role: controller
+  - name: local02
+    role: controller
+  - name: local03
+    role: controller
