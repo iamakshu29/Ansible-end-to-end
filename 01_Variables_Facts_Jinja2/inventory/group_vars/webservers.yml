@@ -1,8 +1,1 @@
 app_env: test
-servers:
-  - name: web01
-    role: web
-  - name: web02
-    role: web
-  - name: web03
-    role: web

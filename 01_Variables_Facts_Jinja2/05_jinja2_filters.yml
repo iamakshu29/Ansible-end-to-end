@@ -17,4 +17,4 @@
 
     - name: "Use of default if a variable is undefined"
       debug:
-        msg: "Undefined Variable is {{ undef_var }} | default('not set')"
+        msg: "Undefined Variable is {{ undef_var | default('not set') }}"
