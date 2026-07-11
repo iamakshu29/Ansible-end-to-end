@@ -1,0 +1,9 @@
+app_name: localhost_app
+web_port: 8080
+servers:
+  - name: local01
+    role: controller
+  - name: local02
+    role: controller
+  - name: local03
+    role: controller  

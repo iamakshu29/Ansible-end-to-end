@@ -2,10 +2,14 @@
   hosts: localhost
   become: true
   gather_facts: true
-  vars:
-    app_name: localhost_app
   tasks:
     - name: Rendering the template with variables
       template:
         src: templates/app_config.j2
         dest: /tmp/app_config.conf
+
+# Run it with
+# ansible-playbook -i inventory/inventory.yml 06_templates.yml
+## take variables from group_vars/all.yml
+# ansible-playbook 06_templates.yml
+## will take variables from vars/app_vars.yml
