@@ -3,16 +3,16 @@
   become: true
   gather_facts: true
   vars:
-
+    # app_name: "Ansible" 
   tasks:
     - name: Print Web variables
       debug:
-        msg: "Web Port={{ web_port }}"
+        msg: "App Name is {{ app_name }} and Web Port={{ web_port }}"
       when: web_port is defined
 
     - name: Print DB variabled
       debug:
-        msg: "DB Port={{ db_port }}"
+        msg: "App Name is {{ app_name }} and DB Port={{ db_port }}"
       when: db_port is defined
 
 # ansible-playbook -i inventory.yml 01_variable_source.yml --check
