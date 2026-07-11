@@ -7,19 +7,19 @@
       debug:
         msg: "Undefined Variable is {{ undef_var | default('not set') }}"
 
-    - name: "Print all server names comma separated as a single string => 'a,b,c'"
+    - name: "Print only server names as list"
+      debug:
+        msg: "{{ servers | map(attribute='name') }}"
+
+    - name: "Print only server names as comma separated in a single string => 'a,b,c'"
       debug:
         msg: "{{ servers | map(attribute='name') | join(', ') }}"
     
-    - name: "Print all server names where role = web"
+    - name: "Print all attributes of server, where role = web"
       debug:
         msg: "{{ servers | selectattr('role','equalto','web') }}"
-
-    - name: "Print name of each server"
-      debug:
-        msg: "{{ servers | map(attribute='name') }}"
     
-    - name: "Print name of each server where role = web"
+    - name: "Print only name attribute of server, where role = web"
       debug:
         msg: "{{ servers | selectattr('role','equalto','web') | map(attribute='name') }}"
 
