@@ -3,7 +3,11 @@
   become: true
   gather_facts: false
   tasks:
-    - name: "Print all server names comma separated"
+    - name: "Use of default if a variable is undefined"
+      debug:
+        msg: "Undefined Variable is {{ undef_var | default('not set') }}"
+
+    - name: "Print all server names comma separated as a single string => 'a,b,c'"
       debug:
         msg: "{{ servers | map(attribute='name') | join(', ') }}"
     
@@ -14,7 +18,9 @@
     - name: "Print name of each server"
       debug:
         msg: "{{ servers | map(attribute='name') }}"
-
-    - name: "Use of default if a variable is undefined"
+    
+    - name: "Print name of each server where role = web"
       debug:
-        msg: "Undefined Variable is {{ undef_var | default('not set') }}"
+        msg: "{{ servers | selectattr('role','equalto','web') | map(attribute='name') }}"
+
+    
