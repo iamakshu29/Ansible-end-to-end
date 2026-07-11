@@ -3,6 +3,7 @@
   become: true
   gather_facts: true
   vars:
+    app_name: localhost_app
   tasks:
     - name: Rendering the template with variables
       template:
