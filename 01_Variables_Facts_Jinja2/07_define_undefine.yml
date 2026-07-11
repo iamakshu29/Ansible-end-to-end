@@ -2,13 +2,15 @@
   hosts: all
   become: true
   gather_facts: true
+  vars:
+    # app_size: large
   tasks:
     - name: Fixing undefining variables with default
       debug:
-        msg: {{ undef_var | default('fallback value') }}
+        msg: "{{ undef_var | default('fallback value') }}"
       when: app_name is defined
     
     - name: Fixing undefining variables with default
       debug:
-        msg: {{ undef_var | default('fallback value') }}
+        msg: "{{ undef_var | default('fallback value') }}"
       when: app_size is defined
