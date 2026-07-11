@@ -6,8 +6,8 @@
   tasks:
     - name: Print Web variables
       debug:
-        msg: "App Env is {{ app_env }}
+        msg: "App Env is {{ app_env }}"
 
     - name: Print DB variabled
       debug:
-        msg: "App Env is {{ app_env }}
+        msg: "App Env is {{ app_env }}"
