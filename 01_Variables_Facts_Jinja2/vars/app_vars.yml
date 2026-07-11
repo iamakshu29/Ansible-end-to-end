@@ -1,6 +1,10 @@
 app_name: localhost_app
 web_port: 8080
-env_tag: local
+env_tag: 
+  - local
+  - my_local
+  - controller_node
+  - ansible_host
 debug_mode: true
 servers:
   - name: local01

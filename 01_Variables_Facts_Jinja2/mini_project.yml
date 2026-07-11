@@ -4,6 +4,10 @@
   gather_facts: true
   vars_files:
     - vars/app_vars.yml
+  vars_prompt:
+    - name: operator_name
+      prompt: "Enter operator name"
+      private: false # show input as typed — not a secret
   tasks:
     - name: Creating System report
       template:
@@ -13,10 +17,15 @@
 
     - name: Report generated
       debug:
-        msg: "Summary Created for {{ inventory_hostname }}"
+        msg: "Report created for {{ inventory_hostname }} | RAM: {{ ansible_facts['memtotal_mb'] }} MB | OS: {{ ansible_facts['os_family'] }}"
       when: ansible_facts['memtotal_mb'] > 900
 
     - name: Report not generated
       debug:
         msg: "Report not Generated as total memory is {{ ansible_facts['memtotal_mb'] }} which is < 900 MB"
       when: ansible_facts['memtotal_mb'] < 900
+
+## Command to run on localhost
+# ansible-playbook -i "localhost," mini_project.yml -e "ansible_connection=local"
+## Command to run on inventory hosts
+# ansible-playbook -i inventory/inventory.yml mini_project.yml
