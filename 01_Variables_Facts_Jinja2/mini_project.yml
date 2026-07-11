@@ -7,12 +7,12 @@
       template:
         src: templates/system_report.j2
         dest: /tmp/system_report_{{ inventory_hostname }}.txt
-      when: ansible_facts['memtotal_mb'] > 3000
+      when: ansible_facts['memtotal_mb'] > 900
 
     - name: Report not generated
       debug:
         msg: "Report not Generated as total memory is {{ ansible_facts['memtotal_mb'] }} which is < 3000 MB"
-      when: ansible_facts['memtotal_mb'] < 3000
+      when: ansible_facts['memtotal_mb'] < 900
     
     - name: Showing the report
       debug:
