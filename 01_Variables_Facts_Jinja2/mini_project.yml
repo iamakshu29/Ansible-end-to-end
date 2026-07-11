@@ -9,6 +9,11 @@
         dest: /tmp/system_report_{{ inventory_hostname }}.txt
       when: ansible_facts['memtotal_mb'] > 900
 
+    - name: Report generated
+      debug:
+        msg: "Summary Created for {{ inventory_hostname }}"
+      when: ansible_facts['memtotal_mb'] > 900
+
     - name: Report not generated
       debug:
         msg: "Report not Generated as total memory is {{ ansible_facts['memtotal_mb'] }} which is < 900 MB"
