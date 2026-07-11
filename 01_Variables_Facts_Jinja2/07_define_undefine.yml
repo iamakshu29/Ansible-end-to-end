@@ -1,0 +1,14 @@
+- name: Check Variables defined and undefined output
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Fixing undefining variables with default
+      debug:
+        msg: {{ undef_var | default('fallback value') }}
+      when: app_name is defined
+    
+    - name: Fixing undefining variables with default
+      debug:
+        msg: {{ undef_var | default('fallback value') }}
+      when: app_size is defined

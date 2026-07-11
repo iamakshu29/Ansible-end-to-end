@@ -29,6 +29,7 @@
     - name: Report status
       debug:
         msg: "{{ 'File CHANGED' if report_result.changed else 'Already up to date' }}"
+      when: ansible_facts['memtotal_mb'] > 900
 
 ## Command to run on localhost
 # ansible-playbook -i "localhost," mini_project.yml -e "ansible_connection=local"
