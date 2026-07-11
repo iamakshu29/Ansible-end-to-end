@@ -1,4 +1,4 @@
-- name: Variable sources — where can variables be defined?
+- name: Understanding Variable Precedence in this playbook
   hosts: all
   become: true
   gather_facts: true

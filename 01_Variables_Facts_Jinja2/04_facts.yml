@@ -1,0 +1,25 @@
+- name: This Playbook is provide tutorial on how to use Ansible Facts executed by gather_facts
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+  tasks:
+    - name: "Get the OS Family"
+      debug:
+        msg: ansible_facts["os_family"]
+
+    - name: "Get the Distribution"
+      debug:
+        msg: ansible_facts["distribution"]
+      
+    - name: "Get the default IPv4"
+      debug:
+        msg: ansible_facts["default_ipv4"]
+
+    - name: "Get the default IPv4 address"
+      debug:
+        msg: ansible_facts["default_ipv4"]["address"]
+
+    - name: "Get the Total Memory in MB"
+      debug:
+        msg: ansible_facts["memtotal_mb"]

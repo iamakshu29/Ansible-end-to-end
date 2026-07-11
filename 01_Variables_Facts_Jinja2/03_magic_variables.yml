@@ -1,4 +1,4 @@
-- name: Variable sources — where can variables be defined?
+- name: Understand magic variables or built-in variables which Ansible provides
   hosts: all
   become: true
   gather_facts: true
