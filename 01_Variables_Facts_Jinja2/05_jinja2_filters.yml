@@ -1,0 +1,20 @@
+- name: Tutorial About Jinja2 syntax and its filters
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: "Print all server names comma separated"
+      debug:
+        msg: "{{ servers | map(attribute='name') | join(', ') }}"
+    
+    - name: "Print all server names where role = web"
+      debug:
+        msg: "{{ servers | selectattr('role','equalto','web') }}"
+
+    - name: "Print name of each server"
+      debug:
+        msg: "{{ servers | map(attribute='name') }}"
+
+    - name: "Use of default if a variable is undefined"
+      debug:
+        msg: "Undefined Variable is {{ undef_var }} | default('not set')"

@@ -1,3 +1,15 @@
 app_name: ubuntu
-
 app_env: dev
+servers:
+  - name: web01
+    role: web
+  - name: web02
+    role: web
+  - name: web03
+    role: web
+  - name: db01
+    role: db
+  - name: db02
+    role: db
+  - name: db03
+    role: db

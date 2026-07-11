@@ -1,7 +1,7 @@
 - name: This Playbook is provide tutorial on how to use Ansible Facts executed by gather_facts
   hosts: all
   become: true
-  gather_facts: false
+  gather_facts: true
   vars:
   tasks:
     - name: "Get the OS Family"

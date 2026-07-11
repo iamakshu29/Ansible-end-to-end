@@ -1,0 +1,20 @@
+- name: This Playbook is provide tutorial on how to use Ansible Facts executed by gather_facts
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: "Gather memory facts using setup module"
+      ansible.builtin.setup:
+        filter: ansible_memory_mb
+
+    - name: "Print memory facts"
+      debug:
+        msg: "Total memory is {{ ansible_facts['ansible_memory_mb']['real']['total'] }} MB"
+    
+    - name: "Gather only distribution name using setup module"
+      ansible.builtin.setup:
+        filter: ansible_distribution
+
+    - name: "Print the distribution"
+      debug:
+        msg: "The OS is {{ ansible_facts['ansible_distribution'] }}"
