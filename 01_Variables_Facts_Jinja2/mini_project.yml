@@ -14,6 +14,7 @@
         src: templates/system_report.j2
         dest: /tmp/system_report_{{ inventory_hostname }}.txt
       when: ansible_facts['memtotal_mb'] > 900
+      register: report_result       # <-- save the task's return value here
 
     - name: Report generated
       debug:
@@ -24,6 +25,10 @@
       debug:
         msg: "Report not Generated as total memory is {{ ansible_facts['memtotal_mb'] }} which is < 900 MB"
       when: ansible_facts['memtotal_mb'] < 900
+
+    - name: Report status
+      debug:
+        msg: "{{ 'File CHANGED' if report_result.changed else 'Already up to date' }}"
 
 ## Command to run on localhost
 # ansible-playbook -i "localhost," mini_project.yml -e "ansible_connection=local"
