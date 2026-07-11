@@ -1,0 +1,10 @@
+- name: This playbook will render a jinja2 template on localhost
+  hosts: localhost
+  become: true
+  gather_facts: true
+  vars:
+  tasks:
+    - name: Rendering the template with variables
+      template:
+        src: templates/app_config.j2
+        dest: /tmp/app_config.conf

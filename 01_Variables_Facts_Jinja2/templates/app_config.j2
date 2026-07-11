@@ -1,0 +1,10 @@
+app_name: {{ app_name }}
+app_port: {{ web_port }}
+
+{% if debug_mode == true %}
+    app_env: {{ app_env }}
+{% endif %}
+
+{% for item in servers %}
+    - {{ item }}
+{% endfor %}
