@@ -1,1 +1,3 @@
 app_name: ubuntu
+
+app_env: dev
