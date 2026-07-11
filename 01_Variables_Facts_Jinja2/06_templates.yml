@@ -2,6 +2,8 @@
   hosts: localhost
   become: true
   gather_facts: true
+  vars_files:
+    - vars/app_vars.yml
   tasks:
     - name: Rendering the template with variables
       template:
