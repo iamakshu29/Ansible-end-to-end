@@ -1,7 +1,7 @@
 - name: This Playbook is provide tutorial on how to use Ansible Facts executed by gather_facts
   hosts: all
   become: true
-  gather_facts: true
+  gather_facts: false
   vars:
   tasks:
     - name: "Get the OS Family"
@@ -19,3 +19,14 @@
     - name: "Get the Total Memory in MB"
       debug:
         msg: "Total Memory: {{ ansible_facts['memtotal_mb'] }}"
+    
+    - name: "Get the Task using setup module"
+      ansible.builtin.setup:
+        filter: ansible_memory_mb
+
+    - name: "Get the Task using setup module"
+      debug:
+        msg: "Total memory is {{ ansible_facts['memtotal_mb'] }} MB"
+
+# Try running ansible localhost -m setup
+# ansible -i inventory/inventory.yml all -m setup
