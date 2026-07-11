@@ -1,1 +1,8 @@
 db_port: 3389
+servers:
+  - name: db01
+    role: db
+  - name: db02
+    role: db
+  - name: db03
+    role: db
