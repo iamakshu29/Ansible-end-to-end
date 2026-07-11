@@ -1,0 +1,27 @@
+- name: Variable sources — where can variables be defined?
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+  tasks:
+    - name: Print Inventory Hostname
+      debug:
+        msg: "Inventory Hostname is {{ inventory_hostname }}"
+
+    - name: Print Group name
+      debug:
+        msg: "Group names is {{ group_names }}"
+
+    - name: Print Group map
+      debug:
+        msg: "Group map for {{ inventory_hostname }} :- {{ groups }}"
+        
+    - name: Print Host map
+      debug:
+        msg: "Host map :- {{ hostvars }}"
+
+    - name: Using other hosts variables in another host
+      debug:
+        msg: 
+          - "db_port is {{ hostvars['db01.com']['db_port'] }}"
+          - "db_port is {{ hostvars[groups['databases'][0]]['db_port'] }}"

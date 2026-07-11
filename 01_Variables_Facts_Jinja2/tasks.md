@@ -108,6 +108,10 @@ Key rules:
 These are never defined by you — Ansible injects them automatically:
 
 - `hostvars` — a dict of ALL hosts and their variables; lets you access another host's vars
+  - hostvars stores the variables of every host in the inventory.
+  - Normally, a host can access only its own variables using {{ variable_name }}.
+  - To access a variable from another host, use `{{ hostvars['inventory_hostname']['variable_name'] }}`
+  - You can also use groups instead hardcode the hostname, use `{{ hostvars[groups['db'][0]]['db_port'] }}`
 - `groups` — a dict of all groups mapped to their list of member hosts
 - `group_names` — a list of groups the current host belongs to
 - `inventory_hostname` — the name of the current host exactly as written in inventory

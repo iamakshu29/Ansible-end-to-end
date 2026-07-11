@@ -1,0 +1,13 @@
+- name: Variable sources — where can variables be defined?
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+  tasks:
+    - name: Print Web variables
+      debug:
+        msg: "App Env is {{ app_env }}"
+
+    - name: Print DB variabled
+      debug:
+        msg: "App Env is {{ app_env }}"
