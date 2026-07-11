@@ -11,9 +11,9 @@
 
     - name: Report not generated
       debug:
-        msg: "Report Note Generated as total memory < 500 MB"
+        msg: "Report not Generated as total memory is ansible_facts['memtotal_mb'] which is < 3000 MB"
       when: ansible_facts['memtotal_mb'] < 3000
     
     - name: Showing the report
       debug:
-        msg: "Summary Created for {{ ansible_host[''] }}"
+        msg: "Summary Created for {{ inventory_hostname }}"
