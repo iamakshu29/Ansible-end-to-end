@@ -1,5 +1,5 @@
 [Hostnames]
-hosts: 
+hosts: {{ inventory_hostname }}
 OS_family: {{ ansible_facts['os_family'] }}
 
 Total RAM: {{ ansible_facts['memtotal_mb'] }}
@@ -7,5 +7,5 @@ Free RAM: {{ ansible_facts['memfree_mb'] }}
 
 IP Addresses: {{ ansible_facts['default_ipv4']['address'] }}
 Environment: {{ env_tag }}
-Ansible Version: {{ ansible_version }}
+Ansible Version: {{ ansible_version['full'] }}
 

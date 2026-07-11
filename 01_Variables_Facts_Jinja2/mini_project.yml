@@ -2,6 +2,8 @@
   hosts: all
   become: true
   gather_facts: true
+  vars_files:
+    - vars/app_vars.yml
   tasks:
     - name: Creating System report
       template:
@@ -18,7 +20,3 @@
       debug:
         msg: "Report not Generated as total memory is {{ ansible_facts['memtotal_mb'] }} which is < 900 MB"
       when: ansible_facts['memtotal_mb'] < 900
-    
-    - name: Showing the report
-      debug:
-        msg: "Summary Created for {{ inventory_hostname }}"
