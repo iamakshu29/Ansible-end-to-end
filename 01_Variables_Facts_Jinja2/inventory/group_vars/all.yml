@@ -1,6 +1,7 @@
 app_name: ubuntu
 web_port: 22
 app_env: local
+debug_mode: true
 servers:
   - name: local01
     role: controller
