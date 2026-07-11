@@ -6,3 +6,4 @@ servers:
     role: db
   - name: db03
     role: db
+env_tag: [app,dev]

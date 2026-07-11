@@ -1,0 +1,19 @@
+- name: Playbook that generates a system report file for each host
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Creating System report
+      template:
+        src: templates/system_report.j2
+        dest: /tmp/system_report_{{ inventory_hostname }}.txt
+      when: ansible_facts['memtotal_mb'] > 3000
+
+    - name: Report not generated
+      debug:
+        msg: "Report Note Generated as total memory < 500 MB"
+      when: ansible_facts['memtotal_mb'] < 3000
+    
+    - name: Showing the report
+      debug:
+        msg: "Summary Created for {{ ansible_host[''] }}"

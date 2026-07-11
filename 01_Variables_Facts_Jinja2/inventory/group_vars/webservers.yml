@@ -6,3 +6,4 @@ servers:
     role: web
   - name: web03
     role: web
+env_tag: [db,prod]

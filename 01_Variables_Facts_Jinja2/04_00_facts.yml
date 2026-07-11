@@ -29,4 +29,4 @@
         msg: "Total memory is {{ ansible_facts['memtotal_mb'] }} MB"
 
 # Try running ansible localhost -m setup
-# ansible -i inventory/inventory.yml all -m setup
+# ansible localhost -m setup
