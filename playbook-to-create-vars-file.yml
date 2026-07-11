@@ -1,0 +1,41 @@
+- name: Automate the creation of Ansible variable structures
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    # Define your groups and hosts right here to generate the files dynamically
+    target_groups:
+      - all
+      - webservers
+    target_hosts:
+      - localhost
+      - webserver1
+
+  tasks:
+    - name: Create group_vars and host_vars directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - group_vars
+        - host_vars
+
+    - name: Automatically create group variable files
+      ansible.builtin.copy:
+        dest: "group_vars/{{ item }}.yml"
+        content: |
+          # Variable file for group: {{ item }}
+          app_name: "AutomatedApp"
+          web_port: 8080
+        force: false # Won't overwrite if the file already exists
+      loop: "{{ target_groups }}"
+
+    - name: Automatically create host variable files
+      ansible.builtin.copy:
+        dest: "host_vars/{{ item }}.yml"
+        content: |
+          # Variable file for host: {{ item }}
+          debug_mode: true
+        force: false
+      loop: "{{ target_hosts }}"

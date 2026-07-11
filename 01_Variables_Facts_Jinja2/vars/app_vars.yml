@@ -1,5 +1,6 @@
 app_name: localhost_app
 web_port: 8080
+debug_mode: true
 servers:
   - name: local01
     role: controller
