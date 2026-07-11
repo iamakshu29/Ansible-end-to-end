@@ -28,5 +28,10 @@
       debug:
         msg: "Total memory is {{ ansible_facts['memtotal_mb'] }} MB"
 
+    # Break stuff on purpose — use a key that does not exist (will error) and handle it with default
+    - name: "Fix - handle undefined fact key with default"
+      debug:
+        msg: "Made up key: {{ ansible_facts['made_up_key'] | default('unknown') }}"
+
 # Try running ansible localhost -m setup
 # ansible localhost -m setup

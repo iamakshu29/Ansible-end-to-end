@@ -3,11 +3,16 @@
   become: true
   gather_facts: true
   vars:
+    app_cloud: AWS
   tasks:
     - name: Print Web variables
       debug:
         msg: "App Env is {{ app_env }}"
 
-    - name: Print DB variabled
+    - name: Print DB variables
       debug:
         msg: "App Env is {{ app_env }}"
+    
+    - name: Print play vars
+      debug:
+        msg: "App is present in {{ app_cloud }}"

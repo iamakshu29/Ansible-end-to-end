@@ -9,7 +9,7 @@
 
     - name: "Print memory facts"
       debug:
-        msg: "Total memory is {{ ansible_facts['ansible_memory_mb']['real']['total'] }} MB"
+        msg: "Total memory is {{ ansible_facts['memory_mb']['real']['total'] }} MB"
     
     - name: "Gather only distribution name using setup module"
       ansible.builtin.setup:
@@ -17,4 +17,4 @@
 
     - name: "Print the distribution"
       debug:
-        msg: "The OS is {{ ansible_facts['ansible_distribution'] }}"
+        msg: "The OS is {{ ansible_facts['distribution'] }}"

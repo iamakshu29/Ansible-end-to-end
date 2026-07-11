@@ -223,7 +223,9 @@ These are never defined by you — Ansible injects them automatically:
 - In `02_variable_precedence.yml` — define the same variable in 4 places at once. Run with `-vvv` verbose flag. Trace exactly which value Ansible is picking.
 - In `04_facts.yml` — try to use `ansible_facts['made_up_key']` that does not exist. What happens? Add `| default('unknown')` to handle it safely.
 - In `06_templates.yml` — break the Jinja2 syntax in the `.j2` file intentionally (leave a tag unclosed). What error does Ansible give?
+  > **Answer:** Ansible throws a `TemplateSyntaxError` before any task runs. The error message names the unclosed tag — e.g., `Unexpected end of template. Jinja2 was looking for the following tags: 'endif' or 'else'`. The playbook fails at the template rendering step, nothing is written to the destination file.
 - Run any playbook with `--check` flag. Understand what check mode does and when tasks report `changed` vs `ok` without actually making changes.
+  > **Answer:** `--check` is a dry-run mode — Ansible simulates what would happen without making any real changes on the target. Tasks that would modify something (create a file, install a package) show as `changed` (yellow). Tasks where the system is already in the desired state show as `ok` (green). No files are written, no packages installed. Use it to safely preview a playbook before applying it to production.
 
 ---
 

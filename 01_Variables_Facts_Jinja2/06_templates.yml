@@ -1,5 +1,5 @@
 - name: This playbook will render a jinja2 template on localhost
-  hosts: localhost
+  hosts: localhost # implicit localhost added not in mini_project or any other 
   become: true
   gather_facts: true
   vars_files:

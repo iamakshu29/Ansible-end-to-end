@@ -3,14 +3,13 @@
   become: true
   gather_facts: true
   vars:
-    # app_size: large
+    # my_var: large
   tasks:
-    - name: Fixing undefining variables with default
+    - name: Print with default - safe fallback
       debug:
         msg: "{{ undef_var | default('fallback value') }}"
-      when: app_name is defined
     
-    - name: Fixing undefining variables with default
+    - name: Skip when undefined - only runs if my_var is defined
       debug:
         msg: "{{ undef_var | default('fallback value') }}"
-      when: app_size is defined
+      when: my_var is defined # works only if defined, try comment & uncomment the variable
