@@ -2,9 +2,14 @@ app_name: {{ app_name }}
 app_port: {{ web_port }}
 
 {% if debug_mode == true %}
-    app_env: {{ app_env }}
+app_env: development
+log_level: debug
+{% else %}
+app_env: production
+log_level: error
 {% endif %}
 
 {% for item in servers %}
     - {{ item }}
 {% endfor %}
+
