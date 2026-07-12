@@ -64,3 +64,8 @@ security_group = {
   }
 }
 
+ssm_parameter = {
+  name = "/ansible/managed_node/key"
+  description = "It contains the private ssh key for ansible managed node"
+  type = "SecureString"
+}

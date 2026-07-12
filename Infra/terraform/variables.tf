@@ -15,3 +15,6 @@ variable "security_group" {
   type = map(any)
 }
 
+variable "ssm_parameter" {
+  type = map(any)
+}

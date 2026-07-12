@@ -2,16 +2,16 @@ all:
   vars:
     ansible_user: ubuntu
     ansible_port: 22
-    ansible_ssh_private_key_file: /home/ubuntu/ansible_managed_node.pem
+    ansible_ssh_private_key_file: /home/ubuntu/.ssh/ansible_managed_node.pem
 
   children:
     webservers:
       hosts:
-        web01.com:
-          ansible_host: 172.31.22.96
+        web01:
+          ansible_host: ${managed_one_ip}
 
     databases:
       hosts:
-        db01.com:
-          ansible_host: 172.31.47.194
+        db01:
+          ansible_host: ${managed_one_ip}
 

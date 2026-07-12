@@ -96,18 +96,19 @@ case "$ACTION" in
     ;;
 
     destroy)
+
+        if [[ ! -f manifest.json ]]; then
+            echo "manifest.json not found. Cannot determine AMI ID."
+            exit 1
+        fi
+
+        AMI_ID=$(grep '"artifact_id"' manifest.json | tail -n 1 | cut -d'"' -f4 | cut -d':' -f2 | tr -d '\r')
+
         echo "Destroying Terraform infrastructure..."
-        terraform -chdir=./terraform destroy
+        terraform -chdir=./terraform destroy -var="controller_ami_id=$AMI_ID"
 
         if [[ "$DELETE_AMI" == true ]]; then
             echo "AMI deletion requested."
-
-            if [[ ! -f manifest.json ]]; then
-                echo "manifest.json not found. Cannot determine AMI ID."
-                exit 1
-            fi
-
-            AMI_ID=$(grep '"artifact_id"' manifest.json | tail -n 1 | cut -d'"' -f4 | cut -d':' -f2 | tr -d '\r')
 
             if [[ -n "$AMI_ID" ]]; then
                 echo "Deleting AMI: $AMI_ID"
@@ -125,6 +126,9 @@ case "$ACTION" in
                         aws ec2 delete-snapshot --snapshot-id "$SNAP"
                     done
                 fi
+
+                echo "Deleting manifest.json"
+                rm -rf manifest.json
 
                 echo "AMI cleanup completed."
             fi

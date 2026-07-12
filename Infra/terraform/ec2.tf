@@ -12,10 +12,24 @@ resource "aws_instance" "ansible" {
   key_name               = aws_key_pair.ansible_key[local.instance_key_map[each.key]].key_name
   subnet_id              = data.aws_subnet.default[each.value.availability_zone].id
   vpc_security_group_ids = [aws_security_group.ansible_sg[local.instance_sg_map[each.key]].id]
-  iam_instance_profile   = each.key == "ansible_controller" ? aws_iam_instance_profile.jenkins.name : null
+  iam_instance_profile   = each.key == "ansible_controller" ? aws_iam_instance_profile.ansible_controller.name : null
+
+  user_data = each.key == "ansible_controller" ? file("${path.module}/user_data.sh") : null
 
   root_block_device {
     volume_size = each.value.size
     encrypted   = true
   }
+
+  tags = each.key == "ansible_controller" ? {
+    Name        = each.key
+    Role        = "controller"
+    Environment = "lab"
+  } : {
+    Name        = each.key
+    Role        = "worker"
+    Environment = "lab"
+  }
+
+  depends_on = [ aws_ssm_parameter.store_managed_node_key ]
 }

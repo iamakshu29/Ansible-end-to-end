@@ -1,12 +1,12 @@
 # The flow is:
-# IAM Role — identity that your EC2/ECS assumes
+# IAM Role — identity that your EC2 assumes
 # Trust policy — defines who can assume the role (EC2 service in this case)
-# IAM Policy, which contains rules/permission
-# Policy attachment — attaches your policy (read_secrets_policy) to the role role_ecs_task, ...
-# Instance profile — wraps the role, so EC2 can use it
-# policy_document -> policy -> role -> policy_attachment (to attach that policy to a role) -> add the role to a resource 
+# IAM Policy, which contains rules/permissions
+# Policy attachment — attaches the policy to the role
+# Instance profile — wraps the role so EC2 can use it
+# policy_document -> policy -> role -> policy_attachment -> instance_profile -> attach to EC2
 
-data "aws_iam_policy_document" "jenkins_assume_role" {
+data "aws_iam_policy_document" "ansible_controller_assume_role" {
   statement {
     effect = "Allow"
 
@@ -19,15 +19,15 @@ data "aws_iam_policy_document" "jenkins_assume_role" {
   }
 }
 
-
-# Create IAM policy, for allowing an EC2 instance, ECS task, or an application to read the secret credentials
-resource "aws_iam_role" "jenkins" {
-  name               = "JenkinsEC2Role"
-  assume_role_policy = data.aws_iam_policy_document.jenkins_assume_role.json
+# Allows the controller EC2 to call EC2 Describe APIs needed by the AWS dynamic inventory plugin
+resource "aws_iam_role" "ansible_controller" {
+  name               = "AnsibleControllerRole"
+  assume_role_policy = data.aws_iam_policy_document.ansible_controller_assume_role.json
 }
 
-resource "aws_iam_policy" "terraform" {
-  name = "TerraformProvisioningPolicy"
+resource "aws_iam_policy" "ansible_controller" {
+  name        = "AnsibleControllerPolicy"
+  description = "EC2 dynamic inventory read + SSM parameter retrieval for the controller node"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -37,30 +37,34 @@ resource "aws_iam_policy" "terraform" {
         Effect = "Allow"
 
         Action = [
-          "ec2:*",
-          "elasticloadbalancing:*",
-          "autoscaling:*",
-          "iam:PassRole",
-          "iam:GetRole",
-          "iam:ListInstanceProfiles",
-          "iam:GetInstanceProfile",
-          "ssm:GetParameter",
-          "ssm:GetParameters",
-          "s3:*"
+          "ec2:DescribeInstances",
+          "ec2:DescribeInstanceStatus",
+          "ec2:DescribeTags",
+          "ec2:DescribeRegions"
         ]
 
         Resource = "*"
+      },
+      {
+        Effect = "Allow"
+
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters"
+        ]
+
+        Resource = "arn:aws:ssm:*:*:parameter/ansible/*"
       }
     ]
   })
 }
 
-resource "aws_iam_role_policy_attachment" "terraform" {
-  role       = aws_iam_role.jenkins.name
-  policy_arn = aws_iam_policy.terraform.arn
+resource "aws_iam_role_policy_attachment" "ansible_controller" {
+  role       = aws_iam_role.ansible_controller.name
+  policy_arn = aws_iam_policy.ansible_controller.arn
 }
 
-resource "aws_iam_instance_profile" "jenkins" {
-  name = "JenkinsInstanceProfile"
-  role = aws_iam_role.jenkins.name
+resource "aws_iam_instance_profile" "ansible_controller" {
+  name = "AnsibleControllerInstanceProfile"
+  role = aws_iam_role.ansible_controller.name
 }
