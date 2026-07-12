@@ -1,4 +1,4 @@
-- name: This Playbook is provide tutorial on how to use Ansible Facts executed by gather_facts
+- name: This Playbook is provide tutorial on how to use Ansible Facts using setup module, if gather_facts are false
   hosts: all
   become: true
   gather_facts: false

@@ -11,7 +11,10 @@
         dest: /tmp/app_config.conf
 
 # Run it with
+
 # ansible-playbook -i inventory/inventory.yml 06_templates.yml
-## take variables from group_vars/all.yml
+## Runs on localhost only (hosts: localhost), loads vars/app_vars.yml (vars_files) AND group_vars/all.yml from inventory dir
+## vars_files has higher precedence than group_vars, so app_vars.yml wins on conflicts
+
 # ansible-playbook 06_templates.yml
-## will take variables from vars/app_vars.yml
+## Uses implicit localhost, loads only vars/app_vars.yml (no inventory dir = no group_vars loaded)
