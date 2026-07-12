@@ -40,40 +40,6 @@ build {
     script = "${path.root}/install_tools.sh"
   }
 
-  provisioner "file" {
-    source      = "${path.root}/plugins.txt"
-    destination = "/tmp/plugins.txt"
-  }
-
-  provisioner "shell" {
-    inline = [
-      "sudo jenkins-plugin-cli --plugin-file /tmp/plugins.txt",
-      "sudo systemctl restart jenkins"
-    ]
-  }
-
-  provisioner "file" {
-  source      = "${path.root}/jenkins.yaml"
-  destination = "/tmp/jenkins.yaml"
-  }
-
-  provisioner "shell" {
-  inline = [
-    "sudo mv /tmp/jenkins.yaml /var/lib/jenkins/jenkins.yaml",
-    "sudo chown jenkins:jenkins /var/lib/jenkins/jenkins.yaml",
-    <<EOF
-sudo mkdir -p /etc/systemd/system/jenkins.service.d
-cat <<EOT | sudo tee /etc/systemd/system/jenkins.service.d/override.conf
-[Service]
-Environment="CASC_JENKINS_CONFIG=/var/lib/jenkins/jenkins.yaml"
-EOT
-EOF
-,
-    "sudo systemctl daemon-reload",
-    "sudo systemctl restart jenkins"
-  ]
-}
-
    post-processor "manifest" {
     output = "manifest.json"
   }

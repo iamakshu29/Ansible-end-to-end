@@ -2,7 +2,7 @@
 
 ###############################################################################
 # Script Name : install_tools.sh
-# Description : Install Tools require to run jenkins pipeline and Ansible
+# Description : Install tools required on the Ansible controller node (Ansible, Git, AWS CLI)
 # Version     : 1.0.0
 # Author      : Akshat Verma
 # Created     : 2026-07-10
