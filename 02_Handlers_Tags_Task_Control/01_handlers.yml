@@ -1,0 +1,23 @@
+- name: Intro to handlers
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+  tasks:
+    - name: Copy Content using copy Module.
+      copy:
+        src: /files/sample_file.conf
+        dest: /tmp/app.conf
+      notify: Something is Updated
+    
+    - name: Just another task.
+      debug:
+        msg: Just another task message
+      notify: Something is Updated
+    
+  handlers:
+    - name: Something is Updated
+      debug:
+        msg: "Config changed - service would restart"
+
+# flush_handlers is left

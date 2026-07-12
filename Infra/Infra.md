@@ -8,7 +8,7 @@ The project demonstrates:
 
 * Packer
 * Terraform
-* Create SSH key pair using command -> ssh-keygen -t rsa -b 4096 -f ansible_managed_node -N '""'
+* Create SSH key pair using command -> ssh-keygen -t rsa -b 4096 -f ansible_managed_node -N ""
 * AWS EC2
 * Ansible
 * Dynamic Inventory

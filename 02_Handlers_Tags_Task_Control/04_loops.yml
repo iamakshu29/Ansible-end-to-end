@@ -1,0 +1,59 @@
+- name: Understanding Loops in Ansible — loop, loop over dicts, loop_control
+  hosts: localhost
+  become: false
+  gather_facts: false
+  vars:
+    filename:
+      - file_a
+      - file_b
+      - file_c
+      - file_d
+    app:
+      - cloud: AWS
+        type: Containerized
+      - cloud: Azure
+        type: K8s
+      - cloud: GCP
+        type: VMs
+      - cloud: VMware
+        type: Bare_Metal
+  tasks:
+
+    # ---------------------------------------------------------------
+    # CASE 1: loop over a simple list
+    # `item` holds the current value from the list on each iteration
+    # This runs 4 times — once per filename in the list
+    # ---------------------------------------------------------------
+    - name: "SIMPLE LOOP | Create one file per item in the filename list"
+      copy:
+        src: /files/sample_file.conf
+        dest: /tmp/{{ item }}.conf
+      loop: "{{ filename }}"
+
+    # ---------------------------------------------------------------
+    # CASE 2: loop over a list of dicts
+    # `item` is now a dict — access fields with item.key
+    # item.cloud = "AWS", item.type = "Containerized" on first iteration
+    # ---------------------------------------------------------------
+    - name: "DICT LOOP | Create one file per cloud provider using item.cloud"
+      copy:
+        src: /files/sample_file.conf
+        dest: /tmp/{{ item.cloud }}.conf
+      loop: "{{ app }}"
+
+    # ---------------------------------------------------------------
+    # CASE 3: loop_control with label
+    # Without label: Ansible prints the full dict in output — noisy
+    # With label: output shows only item.type — clean and readable
+    # Try removing the label line and re-run to see the difference
+    # ---------------------------------------------------------------
+    - name: "LOOP_CONTROL | Show cloud and type — label keeps output clean"
+      debug:
+        msg: "Cloud: {{ item.cloud }} | Deployment type: {{ item.type }}"
+      loop: "{{ app }}"
+      loop_control:
+        label: "{{ item.cloud }} ({{ item.type }})"
+
+
+
+    

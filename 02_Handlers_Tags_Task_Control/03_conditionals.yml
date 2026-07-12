@@ -1,0 +1,59 @@
+- name: Understanding Conditionals in Ansible — when, is defined, AND, OR
+  hosts: localhost
+  become: false
+  gather_facts: true
+  vars:
+    # Try commenting out def_var and re-running to see task 3 skip
+    def_var: "hello from vars"
+  tasks:
+
+    # ---------------------------------------------------------------
+    # CASE 1: Single condition — check OS type
+    # Only ONE of these two tasks will run depending on the host OS
+    # ---------------------------------------------------------------
+    - name: "SINGLE CONDITION | Print message when system is Linux"
+      debug:
+        msg: "System is Linux (ansible_facts['system'] = {{ ansible_facts['system'] }}) — condition TRUE, task runs"
+      when: ansible_facts['system'] == "Linux"
+
+    - name: "SINGLE CONDITION | Print message when system is Windows"
+      debug:
+        msg: "System is Windows — condition TRUE, task runs"
+      when: ansible_facts['system'] == "Win32NT"
+
+    # ---------------------------------------------------------------
+    # CASE 2: is defined — check if a variable exists before using it
+    # Task 3 runs because def_var is set in vars above
+    # Task 4 is SKIPPED because undef_var is never defined anywhere
+    # ---------------------------------------------------------------
+    - name: "IS DEFINED | def_var is defined — this task RUNS"
+      debug:
+        msg: "def_var is defined with value: '{{ def_var }}' — task runs. Comment out def_var in vars and re-run to see it skip."
+      when: def_var is defined
+
+    - name: "IS DEFINED | undef_var is NOT defined — this task is SKIPPED"
+      debug:
+        msg: "You will never see this message because undef_var does not exist"
+      when: undef_var is defined
+
+    # ---------------------------------------------------------------
+    # CASE 3: AND — both conditions must be true for the task to run
+    # def_var is defined = TRUE, system check depends on OS
+    # On Linux both are true → runs. On Windows second check fails → skips
+    # ---------------------------------------------------------------
+    - name: "AND CONDITION | Run only when def_var is defined AND system is Linux"
+      debug:
+        msg: "Both conditions are TRUE — def_var='{{ def_var }}' AND system='{{ ansible_facts['system'] }}'"
+      when: def_var is defined and ansible_facts['system'] == "Linux"
+
+    # ---------------------------------------------------------------
+    # CASE 4: OR — at least one condition must be true
+    # undef_var is NOT defined = FALSE, but system check may be TRUE
+    # So this task still runs because the second condition saves it
+    # ---------------------------------------------------------------
+    - name: "OR CONDITION | Run when undef_var is defined OR system is Linux"
+      debug:
+        msg: "At least one condition is TRUE — undef_var is undefined (FALSE) but system='{{ ansible_facts['system'] }}' is Linux (TRUE) → task runs"
+      when: undef_var is defined or ansible_facts['system'] == "Linux"
+
+    
