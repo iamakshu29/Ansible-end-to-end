@@ -2,30 +2,27 @@
   hosts: localhost
   become: false
   gather_facts: false
-  vars:
   tasks:
-    block:
-      - name: Copy Content using copy Module.
-        copy:
-          src: files/sample_file.conf
-          dest: /tmp/block_test.txt
-      
-      - name: Command that fails
-        command: uptme
-      
-      - name: This should not run
-        debug:
-          msg: I will skip for sure
-        tags: 
-          - never
-    
-    rescue:
-      - name: Printing the task name that got failed
-        debug:
-          msg: ansible_failed_task.name
-    
-    always:
-      - name: Delete the file
-        file:
-          path: /tmp/block_test.txt
-          state: absent
+    - block:
+        - name: Copy Content using copy Module.
+          copy:
+            src: files/sample_file.conf
+            dest: /tmp/block_test.txt
+
+        - name: Command that fails
+          command: uptme
+
+        - name: This will not run, because of above wrong tasks
+          debug:
+            msg: "I will skip for sure"
+
+      rescue:
+        - name: Printing the task name that got failed
+          debug:
+            msg: "Failed task name: {{ ansible_failed_task.name }}"
+
+      always:
+        - name: Delete the file
+          file:
+            path: /tmp/block_test.txt
+            state: absent
