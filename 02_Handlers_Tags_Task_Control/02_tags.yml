@@ -36,7 +36,7 @@
 
     - name: "ALWAYS | This task always runs regardless of tags"
       debug:
-        msg: "This runs even when filtering by --tags install or --skip-tags configure"
+        msg: "This runs even when filtering by --tags install or --skip-tags configure, but not when skipped explicitly --skip-tags always"
       tags:
         - always
 
@@ -44,7 +44,7 @@
 # ansible-playbook 02_tags.yml --tags install
 
 ## Run all playbook tasks except tagged with tag -configure
-# ansible-playbook 02_tags.yml --tags install
+# ansible-playbook 02_tags.yml --skip-tags configure
 
 ## Run playbook taks tagged with tag -debug
 # ansible-playbook 02_tags.yml --tags debug

@@ -26,7 +26,7 @@
     # ---------------------------------------------------------------
     - name: "SIMPLE LOOP | Create one file per item in the filename list"
       copy:
-        src: files/sample_file.conf
+        src: templates/sample_template.j2
         dest: /tmp/{{ item }}.conf
       loop: "{{ filename }}"
 
