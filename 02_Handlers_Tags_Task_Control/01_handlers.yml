@@ -1,7 +1,7 @@
 - name: Intro to handlers
-  hosts: all
-  become: true
-  gather_facts: true
+  hosts: localhost
+  become: false
+  gather_facts: false
   vars:
   tasks:
     - name: Copy Content using copy Module.
