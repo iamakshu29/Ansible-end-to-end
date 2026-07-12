@@ -26,7 +26,7 @@
     # ---------------------------------------------------------------
     - name: "SIMPLE LOOP | Create one file per item in the filename list"
       copy:
-        src: /files/sample_file.conf
+        src: files/sample_file.conf
         dest: /tmp/{{ item }}.conf
       loop: "{{ filename }}"
 
@@ -37,7 +37,7 @@
     # ---------------------------------------------------------------
     - name: "DICT LOOP | Create one file per cloud provider using item.cloud"
       copy:
-        src: /files/sample_file.conf
+        src: files/sample_file.conf
         dest: /tmp/{{ item.cloud }}.conf
       loop: "{{ app }}"
 

@@ -6,7 +6,7 @@
   tasks:
     - name: Copy Content using copy Module.
       copy:
-        src: /files/sample_file.conf
+        src: files/sample_file.conf
         dest: /tmp/app.conf
       notify: Something is Updated
     
