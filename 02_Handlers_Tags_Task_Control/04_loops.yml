@@ -37,7 +37,7 @@
     # ---------------------------------------------------------------
     - name: "DICT LOOP | Create one file per cloud provider using item.cloud"
       template:
-        src: files/sample_file.conf
+        src: templates/sample_template.j2
         dest: /tmp/{{ item.cloud }}.conf
       loop: "{{ app }}"
 
@@ -49,10 +49,11 @@
     # ---------------------------------------------------------------
     - name: "LOOP_CONTROL | Show cloud and type — label keeps output clean"
       debug:
-        msg: "Cloud: {{ item.cloud }} | Deployment type: {{ item.type }}"
+        msg: "Item {{ idx }} — Cloud: {{ item.cloud }} | Deployment type: {{ item.type }}"
       loop: "{{ app }}"
       loop_control:
         label: "{{ item.cloud }} ({{ item.type }})"
+        index_var: idx
 
 
 
