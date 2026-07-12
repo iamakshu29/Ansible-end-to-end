@@ -55,6 +55,28 @@
         label: "{{ item.cloud }} ({{ item.type }})"
         index_var: idx
 
+    # ---------------------------------------------------------------
+    # CASE 4: until — retry a task until a condition becomes true
+    # `register` captures the task result into a variable
+    # `until` checks that variable's value after each attempt
+    # `retries` = max attempts, `delay` = seconds between each attempt
+    #
+    # HOW TO TEST THIS:
+    #   Run the playbook — it will start retrying every 3 seconds
+    #   While it retries, open another terminal and run:
+    #     touch /tmp/ready.txt        (on Linux/Mac)
+    #     New-Item /tmp/ready.txt     (on Windows)
+    #   Watch Ansible detect the file and succeed
+    #   If you do nothing, it fails after 5 retries — that is also valid learning
+    # ---------------------------------------------------------------
+    - name: "UNTIL | Wait for /tmp/ready.txt to appear — retries 5 times, 3s apart"
+      stat:
+        path: /tmp/ready.txt
+      register: ready_file
+      until: ready_file.stat.exists
+      retries: 5
+      delay: 3
+
 
 
     
