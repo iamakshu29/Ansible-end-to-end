@@ -1,6 +1,7 @@
 #!/bin/bash
 
 mkdir -p /home/ubuntu/.ssh
+mkdir -p /home/ubuntu/git_repo
 
 aws ssm get-parameter \
     --name "/ansible/managed_node/key" \
@@ -11,3 +12,5 @@ aws ssm get-parameter \
 chmod 400 /home/ubuntu/.ssh/ansible_managed_node.pem
 
 chown ubuntu:ubuntu /home/ubuntu/.ssh/ansible_managed_node.pem
+
+git clone https://github.com/iamakshu29/Ansible-end-to-end
