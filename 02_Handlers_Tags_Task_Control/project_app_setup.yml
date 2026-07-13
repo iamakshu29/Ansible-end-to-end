@@ -35,10 +35,11 @@
 
         - name: "Creating files"
           shell: "echo {{ item.content }} >> /tmp/{{ item.name }}"
-          loop: {{ file_and_cont }}
+          loop: "{{ file_and_cont }}"
+          notify: Restart Service
       tags:
         - configure
-      notify: Restart Service
+      
 
     - block:
         - name: "DEPLOY | Deploy package"
