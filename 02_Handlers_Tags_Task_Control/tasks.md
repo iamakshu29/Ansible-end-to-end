@@ -179,8 +179,13 @@ Why handlers exist: restarting nginx every time a config task runs is wrong. Han
   - Use `include_tasks` with a VARIABLE as the filename: `include_tasks: "tasks/{{ task_file }}"` with `vars: {task_file: "deploy.yml"}`
 - Run with `--tags install` — import lets tags through. Observe.
 - Run with `--tags configure` — include does NOT let tags through to inside tasks. Observe.
-- Try using `import_tasks` with the variable filename. Run. Read the error. Understand it.
-- Switch back to `include_tasks`. Run. It works.
+- Try using `import_tasks` with the variable filename.
+  - If the variable is defined in `vars:` at the play level, **it works** — Ansible can resolve play-level vars at parse time, so `import_tasks` sees a concrete filename.
+  - The error only occurs when the variable is a **runtime variable** (from `gather_facts`, `register`, or inventory) — something Ansible cannot know at parse time.
+  - To actually trigger the error: remove the variable from `vars:`, pass it via `-e` at runtime or use a fact, and try `import_tasks` again.
+- Error Message is  "Static imports cannot use variables from facts or inventory
+sources like group or host vars".
+- Switch to `include_tasks`. Works in all cases because the file is resolved at runtime.
 
 ---
 

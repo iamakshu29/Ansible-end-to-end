@@ -3,7 +3,7 @@
   become: false
   gather_facts: false
   vars:
-    task_file: deploy
+    # task_file: deploy
   tasks:
     - name: Calling Install tasks
       import_tasks: tasks/install.yml
@@ -20,7 +20,16 @@
       tags: 
         - deploy
 
-### Commands
+### Commands & Results
 # ansible-playbook 06_import_vs_include.yml --tags install
+#   -> Runs tasks inside install.yml directly (import is static, tags pass through to inner tasks)
+#
 # ansible-playbook 06_import_vs_include.yml --tags configure
+#   -> First includes the file at runtime, then runs tasks inside it
+#
 # ansible-playbook 06_import_vs_include.yml --tags deploy
+#   -> Same as configure — include resolves the variable filename at runtime
+#
+# Note: import_tasks with a variable filename (task_file defined in vars:) did NOT error
+#   because play-level vars are resolved at parse time — Ansible knows the filename before running.
+#   The error only happens when the variable is a runtime value (fact, registered var, etc.)
