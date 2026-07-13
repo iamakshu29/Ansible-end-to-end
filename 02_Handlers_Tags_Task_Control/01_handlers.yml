@@ -14,10 +14,22 @@
       debug:
         msg: Just another task message
       notify: Something is Updated
-    
+
+    # flush_handlers demo — forces pending handlers to run NOW, mid-play
+    # Without this, "Something is Updated" only fires at the very end of the play.
+    # With this, it fires here — before the next task runs.
+    - name: Flush handlers mid-play
+      meta: flush_handlers
+
+    - name: Task after flush - handler already fired above
+      debug:
+        msg: "Handler ran before this task due to flush_handlers"
+
   handlers:
     - name: Something is Updated
       debug:
         msg: "Config changed - service would restart"
 
-# flush_handlers is left
+## Commands
+# ansible-playbook 01_handlers.yml
+# Comment out the flush_handlers task and compare — handler moves to end of play.

@@ -60,7 +60,7 @@
         - name: Run Always
           debug:
             msg: "Deploy Attempt Finished"
-      when: deploy_enabled == true
+      when: deploy_enabled == "true"
 
     - name: Stretch Goal 1 - Print all variables
       debug:
