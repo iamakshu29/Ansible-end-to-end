@@ -1,0 +1,71 @@
+- name: Project
+  hosts: localhost
+  become: false
+  gather_facts: false
+
+  vars:
+    file_and_cont:
+      - name: "file_a"
+        content: "Hi this is content of file_a"
+      - name: "file_b"
+        content: "Hi this is content of file_b"
+      - name: "file_c"
+        content: "Hi this is content of file_c"
+      - name: "file_d"
+        content: "Hi this is content of file_d"
+
+    deploy_enabled: false
+
+  tasks:
+    - block:
+        - name: "INSTALL | Install package A"
+          debug:
+            msg: "Installing package A"
+
+        - name: "INSTALL | Install package B"
+          debug:
+            msg: "Installing package B"
+      tags:
+        - install
+
+    - block:
+        - name: "CONFIGURE | Configure service"
+          debug:
+            msg: "Configuring mutiple files"
+
+        - name: "Creating files"
+          shell: "echo {{ item.content }} >> /tmp/{{ item.name }}"
+          loop: {{ file_and_cont }}
+      tags:
+        - configure
+      notify: Restart Service
+
+    - block:
+        - name: "DEPLOY | Deploy package"
+          debug:
+            msg: "Deploying package from files"
+
+        - name: "DEPLOYING configure Files"
+          include_tasks: tasks/configure.yml
+      tags:
+        - deploy
+
+      rescue:
+        - name: Printing the task name that got failed
+          debug:
+            msg: "Failed task name: {{ ansible_failed_task.name }}"
+      always:
+        - name: Run Always
+          debug:
+            msg: "Deploy Attempt Finished"
+      when: deploy_enabled == true
+
+  handlers:
+    - name: Restart Service
+      debug:
+        msg: "Restart App Service"
+
+## Commands
+# ansible-playbook project_app_setup.yml --tags install
+# ansible-playbook project_app_setup.yml --tags configure
+# ansible-playbook project_app_setup.yml --tags deploy
