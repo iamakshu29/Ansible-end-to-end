@@ -13,4 +13,6 @@ chmod 400 /home/ubuntu/.ssh/ansible_managed_node.pem
 
 chown ubuntu:ubuntu /home/ubuntu/.ssh/ansible_managed_node.pem
 
+cd /home/ubuntu/git_repo
 git clone https://github.com/iamakshu29/Ansible-end-to-end
+sudo chown -R ubuntu:ubuntu /Ansible-end-to-end
