@@ -1,0 +1,8 @@
+- name: "CONFIGURE | Configure service"
+  debug:
+    msg: "Configuring multiple files"
+
+- name: "CONFIGURE | Creating files"
+  shell: "echo {{ item.content }} > /tmp/{{ item.name }}"
+  loop: "{{ file_and_cont }}"
+  notify: Restart Service

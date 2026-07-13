@@ -29,16 +29,13 @@
         - install
 
     - block:
-        - name: "CONFIGURE | Configure service"
-          debug:
-            msg: "Configuring mutiple files"
-
-        - name: "Creating files"
-          shell: "echo {{ item.content }} >> /tmp/{{ item.name }}"
-          loop: "{{ file_and_cont }}"
-          notify: Restart Service
+        - name: "CONFIGURE | Load configure tasks"
+          include_tasks: tasks/configure_tasks.yml
       tags:
         - configure
+
+    - name: Flush handlers after configure
+      meta: flush_handlers
       
 
     - block:
@@ -46,8 +43,12 @@
           debug:
             msg: "Deploying package from files"
 
-        - name: "DEPLOYING configure Files"
-          include_tasks: tasks/configure.yml
+        - name: "DEPLOY | Health check"
+          command: test -f /tmp/file_a
+          register: health_check
+          until: health_check.rc == 0
+          retries: 3
+          delay: 5
       tags:
         - deploy
 
@@ -61,6 +62,16 @@
             msg: "Deploy Attempt Finished"
       when: deploy_enabled == true
 
+    - name: Stretch Goal 1 - Print all variables
+      debug:
+        msg:
+          - "Name is {{ item.name }} and Content is {{ item.content }}"
+          - "deploy_enabled is {{ deploy_enabled }}"
+      loop: "{{ file_and_cont }}"
+      tags:
+        - never
+        - debug
+
   handlers:
     - name: Restart Service
       debug:
@@ -70,3 +81,4 @@
 # ansible-playbook project_app_setup.yml --tags install
 # ansible-playbook project_app_setup.yml --tags configure
 # ansible-playbook project_app_setup.yml --tags deploy
+# ansible-playbook project_app_setup.yml --tags deploy -e "deploy_enabled=true"
