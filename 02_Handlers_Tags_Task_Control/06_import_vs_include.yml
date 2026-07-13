@@ -13,7 +13,7 @@
     - name: Calling Include tasks
       include_tasks: tasks/configure.yml
       tags: 
-        - install
+        - configure
 
     - name: Calling Include tasks
       include_tasks: "tasks/{{ task_file }}.yml"
