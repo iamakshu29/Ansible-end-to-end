@@ -1,17 +1,11 @@
-- name: Playbook To configure or modify some conf files
-  hosts: localhost
-  become: false
-  gather_facts: false
-  tasks:
-    - name: "CONFIGURE | Configure service A"
-      debug:
-        msg: "Configuring service A"
-      tags:
-        - configure
-
-    - name: "CONFIGURE | Configure service B"
-      debug:
-        msg: "Configuring service B"
-      tags:
-        - configure
-
+- name: "CONFIGURE | Configure service A"
+  debug:
+    msg: "Configuring service A"
+  tags:
+    - configure
+    
+- name: "CONFIGURE | Configure service B"
+  debug:
+    msg: "Configuring service B"
+  tags:
+    - configure
