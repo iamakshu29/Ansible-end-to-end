@@ -1,0 +1,26 @@
+- name: Tutorial on how to use import and include
+  hosts: localhost
+  become: false
+  gather_facts: false
+  vars:
+    task_file: deploy
+  tasks:
+    - name: Calling Install tasks
+      import_tasks: tasks/install.yml
+      tags: 
+        - install
+    
+    - name: Calling Include tasks
+      include_tasks: tasks/configure.yml
+      tags: 
+        - install
+
+    - name: Calling Include tasks
+      include_tasks: "tasks/{{ task_file }}.yml"
+      tags: 
+        - deploy
+
+### Commands
+# ansible-playbook 06_import_vs_include.yml --tags install
+# ansible-playbook 06_import_vs_include.yml --tags configure
+# ansible-playbook 06_import_vs_include.yml --tags deploy

@@ -1,0 +1,16 @@
+- name: Playbook To deploy some apps
+  hosts: localhost
+  become: false
+  gather_facts: false
+  tasks:
+    - name: "DEPLOY | Deploy package A"
+      debug:
+        msg: "Deploying package A"
+      tags:
+        - deploy
+
+    - name: "DEPLOY | Deploy package B"
+      debug:
+        msg: "Deploying package B"
+      tags:
+        - deploy

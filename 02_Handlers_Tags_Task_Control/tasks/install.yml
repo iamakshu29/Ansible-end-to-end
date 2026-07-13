@@ -1,0 +1,17 @@
+- name: Playbook To install some tools
+  hosts: localhost
+  become: false
+  gather_facts: false
+  tasks:
+    - name: "INSTALL | Install package A"
+      debug:
+        msg: "Installing package A"
+      tags:
+        - install
+
+    - name: "INSTALL | Install package B"
+      debug:
+        msg: "Installing package B"
+      tags:
+        - install
+
