@@ -168,6 +168,8 @@ Why handlers exist: restarting nginx every time a config task runs is wrong. Han
 | Variable as filename | ❌ no | ✅ yes |
 | `when:` behaviour | applies to every task inside | decides whether to load the file |
 
+> **Note:** A task file used with `import_tasks` or `include_tasks` must contain **only a flat list of tasks** — no `hosts:`, `become:`, `gather_facts:`, or `tasks:` key. Those keys belong to a playbook, not a task file. If you add them, Ansible will fail to parse the file correctly when importing it. A task file is not a playbook — it is just a list of task objects that gets pulled into a playbook that already has those top-level settings.
+
 **Exercise — 06_import_vs_include.yml:**
 
 - Create `tasks/install.yml`, `tasks/configure.yml`, `tasks/deploy.yml` — each with 1–2 debug tasks tagged with meaningful tag names
