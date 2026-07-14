@@ -11,7 +11,7 @@ instance = {
   ansible_controller = {
     size              = 12
     availability_zone = "us-east-1a"
-    instance_type     = "t3.medium"
+    instance_type     = "t3.micro"
   }
   managed_one = {
     size              = 8
