@@ -1,9 +1,8 @@
 - name: Understanding Variable Precedence in Ansible — host_vars beats group_vars beats play vars
   hosts: all
   become: true
-  gather_facts: true
   vars:
-    # app_cloud is defined HERE (play vars) — beats group_vars and host_vars for app_cloud
+    # app_cloud is defined HERE (play vars) — beats group_vars and host_vars for app_cloud if exists
     app_cloud: AWS
     # EXPERIMENT: Uncomment below — play vars wins over any group_vars for app_env too
     # app_env: "play-level"

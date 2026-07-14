@@ -1,7 +1,6 @@
 - name: Understanding Magic Variables in Ansible — inventory_hostname, group_names, groups, hostvars
   hosts: all
   become: true
-  gather_facts: true
   vars:
   tasks:
 

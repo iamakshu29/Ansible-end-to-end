@@ -1,7 +1,6 @@
 - name: Understanding Variable Sources in Ansible — group_vars, host_vars, vars, set_fact, register
   hosts: all
   become: true
-  gather_facts: true
   vars:
     # Uncomment the line below to override app_name from group_vars/all.yml
     # app_name: "Play-level override"

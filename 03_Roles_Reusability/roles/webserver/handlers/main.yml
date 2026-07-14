@@ -1,0 +1,3 @@
+- name: Restarting nginx Service
+  debug:
+    msg: Nginx restarted

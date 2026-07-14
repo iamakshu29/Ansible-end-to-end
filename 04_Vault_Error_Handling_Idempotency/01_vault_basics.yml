@@ -1,0 +1,13 @@
+- name: Vault Tutorial
+  hosts: localhost
+  become: true
+  vars:
+  tasks:
+    - name: Print app_name, db_password and api_key
+      debug:
+        msg: 
+          - "App Name is {{ app_name }}"
+          - "DB Password is {{ db_password }}"
+          - "API Keys is {{ api_key }}"
+
+# ansible-playbook 01_vault_basics --ask-vault-pass
