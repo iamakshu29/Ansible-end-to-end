@@ -1,4 +1,4 @@
-- name: Project
+- name: Mini Project — Controlled App Setup with tags, handlers, loops, when, block/rescue/always
   hosts: localhost
   become: false
   gather_facts: false
@@ -14,10 +14,18 @@
       - name: "file_d"
         content: "Hi this is content of file_d"
 
+    # Set to "true" (string) to run the deploy block
+    # or pass via CLI: -e "deploy_enabled=true"
     deploy_enabled: false
 
   tasks:
-    - block:
+
+    # ---------------------------------------------------------------
+    # SECTION 1: INSTALL — run with --tags install
+    # Tags on the block apply to both tasks inside — no need to repeat per task
+    # ---------------------------------------------------------------
+    - name: "INSTALL BLOCK | Install application packages"
+      block:
         - name: "INSTALL | Install package A"
           debug:
             msg: "Installing package A"
@@ -28,46 +36,69 @@
       tags:
         - install
 
-    - block:
-        - name: "CONFIGURE | Load configure tasks"
+    # ---------------------------------------------------------------
+    # SECTION 2: CONFIGURE — run with --tags configure
+    # Uses include_tasks to pull configure_tasks.yml at runtime (dynamic)
+    # Tasks inside configure_tasks.yml notify the handler defined below
+    # ---------------------------------------------------------------
+    - name: "CONFIGURE BLOCK | Load configure tasks from external file"
+      block:
+        - name: "CONFIGURE | Load configure tasks via include_tasks"
           include_tasks: tasks/configure_tasks.yml
       tags:
         - configure
 
-    - name: Flush handlers after configure
+    # flush_handlers ensures the service restart happens BEFORE deploy starts
+    - name: "FLUSH | Run pending handlers now — service restart before deploy"
       meta: flush_handlers
-      
 
-    - block:
+    # ---------------------------------------------------------------
+    # SECTION 3: DEPLOY — run with --tags deploy
+    # Gated by when: deploy_enabled == "true" — skipped if false (default)
+    # block/rescue/always handles errors — always prints completion status
+    # until: on health check retries up to 3 times before failing
+    # ---------------------------------------------------------------
+    - name: "DEPLOY BLOCK | Deploy with health check and error handling"
+      block:
         - name: "DEPLOY | Deploy package"
           debug:
             msg: "Deploying package from files"
 
-        - name: "DEPLOY | Health check"
+        - name: "DEPLOY | Health check — retries until /tmp/file_a exists"
           command: test -f /tmp/file_a
           register: health_check
           until: health_check.rc == 0
           retries: 3
           delay: 5
-      tags:
-        - deploy
 
       rescue:
-        - name: Printing the task name that got failed
+        - name: "RESCUE | Print which deploy task failed"
           debug:
-            msg: "Failed task name: {{ ansible_failed_task.name }}"
+            msg: "Deploy failed at task: '{{ ansible_failed_task.name }}'"
+
       always:
-        - name: Run Always
+        - name: "ALWAYS | Confirm deploy attempt finished"
           debug:
-            msg: "Deploy Attempt Finished"
+            msg: "Deploy attempt finished"
+
+      tags:
+        - deploy
       when: deploy_enabled == "true"
 
-    - name: Stretch Goal 1 - Print all variables
+    # ---------------------------------------------------------------
+    # STRETCH: Debug variable dump — tagged 'never', skipped by default
+    # Run with --tags debug to activate
+    # Loops over file_and_cont list — one iteration per dict item
+    # loop_control label keeps output clean (shows name only, not full dict)
+    # ---------------------------------------------------------------
+    - name: "STRETCH | Print all variables (tagged never — run with --tags debug)"
       debug:
         msg:
-          - "Name is {{ item.name }} and Content is {{ item.content }}"
-          - "deploy_enabled is {{ deploy_enabled }}"
+          - "Name: {{ item.name }} | Content: {{ item.content }}"
+          - "deploy_enabled = {{ deploy_enabled }}"
       loop: "{{ file_and_cont }}"
+      loop_control:
+        label: "{{ item.name }}"
       tags:
         - never
         - debug
@@ -75,10 +106,11 @@
   handlers:
     - name: Restart Service
       debug:
-        msg: "Restart App Service"
+        msg: "Handler fired — App Service would restart here in a real playbook"
 
 ## Commands
 # ansible-playbook project_app_setup.yml --tags install
 # ansible-playbook project_app_setup.yml --tags configure
-# ansible-playbook project_app_setup.yml --tags deploy
-# ansible-playbook project_app_setup.yml --tags deploy -e "deploy_enabled=true"
+# ansible-playbook project_app_setup.yml --tags deploy                           # skipped — deploy_enabled=false
+# ansible-playbook project_app_setup.yml --tags deploy -e "deploy_enabled=true"  # runs deploy
+# ansible-playbook project_app_setup.yml --tags debug                            # stretch goal

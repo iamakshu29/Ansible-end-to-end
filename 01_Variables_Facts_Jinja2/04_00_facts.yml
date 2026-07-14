@@ -1,37 +1,72 @@
-- name: This Playbook is provide tutorial on how to use Ansible Facts executed by gather_facts
+- name: Understanding Ansible Facts — gather_facts, ansible_facts dict, setup module with filter
   hosts: all
   become: true
-  gather_facts: true
+  gather_facts: true   # default: true — Ansible runs setup module automatically before any task
   vars:
   tasks:
-    - name: "Get the OS Family"
-      debug:
-        msg: "OS Family: {{ ansible_facts['os_family'] }}"
 
-    - name: "Get the Distribution"
+    # ---------------------------------------------------------------
+    # CASE 1: OS facts — what OS is this host running?
+    # os_family    = broad category: RedHat, Debian, Windows
+    # distribution = specific distro: Ubuntu, CentOS, Amazon
+    # All these values live inside ansible_facts, populated by gather_facts at play start
+    # ---------------------------------------------------------------
+    - name: "FACTS | OS family, distribution, and version"
       debug:
-        msg: "Distribution: {{ ansible_facts['distribution'] }}"
+        msg:
+          - "OS Family:    {{ ansible_facts['os_family'] }}"
+          - "Distribution: {{ ansible_facts['distribution'] }}"
+          - "Version:      {{ ansible_facts['distribution_version'] }}"
 
-    - name: "Get the default IPv4 address"
+    # ---------------------------------------------------------------
+    # CASE 2: Network facts — what IP does this host have?
+    # default_ipv4 is a dict: { address, interface, gateway, netmask }
+    # ---------------------------------------------------------------
+    - name: "FACTS | Network — default IPv4 address"
       debug:
         msg: "IP Address: {{ ansible_facts['default_ipv4']['address'] }}"
 
-    - name: "Get the Total Memory in MB"
+    # ---------------------------------------------------------------
+    # CASE 3: Memory facts — how much RAM does this host have?
+    # ---------------------------------------------------------------
+    - name: "FACTS | Memory — total RAM in MB"
       debug:
-        msg: "Total Memory: {{ ansible_facts['memtotal_mb'] }}"
-    
-    - name: "Get the Task using setup module"
+        msg: "Total Memory: {{ ansible_facts['memtotal_mb'] }} MB"
+
+    # ---------------------------------------------------------------
+    # CASE 4: setup module with filter — gather ONLY specific facts
+    # Normally gather_facts: true collects everything (can be slow on many hosts)
+    # filter: limits collection to one category — faster, lower overhead
+    # After this task, ansible_facts['memory_mb'] is available
+    # ---------------------------------------------------------------
+    - name: "SETUP | Gather ONLY memory facts using filter (partial re-gather)"
       ansible.builtin.setup:
         filter: ansible_memory_mb
 
-    - name: "Get the Task using setup module"
+    - name: "SETUP | Print detailed memory info from filtered gather"
       debug:
-        msg: "Total memory is {{ ansible_facts['memtotal_mb'] }} MB"
+        msg: "Detailed memory: {{ ansible_facts['memory_mb'] }}"
 
-    # Break stuff on purpose — use a key that does not exist (will error) and handle it with default
-    - name: "Fix - handle undefined fact key with default"
+    # ---------------------------------------------------------------
+    # CASE 5: Break stuff on purpose — access a key that does not exist
+    # ansible_facts['made_up_key'] does not exist → KeyError without | default
+    # | default('unknown') catches it and returns a safe fallback instead of failing
+    # ---------------------------------------------------------------
+    - name: "BREAK & FIX | Access non-existent fact key — handled with default"
       debug:
-        msg: "Made up key: {{ ansible_facts['made_up_key'] | default('unknown') }}"
+        msg: "made_up_key = {{ ansible_facts['made_up_key'] | default('unknown — key does not exist in facts') }}"
 
-# Try running ansible localhost -m setup
-# ansible localhost -m setup
+# ---------------------------------------------------------------
+# WHAT TO TRY:
+#   1. Change gather_facts: true → false and run — tasks using ansible_facts fail immediately
+#      because nothing was gathered before the tasks started
+#   2. Run: ansible all -m setup -i inventory/inventory.yml
+#      Dumps ALL facts — read through to see everything Ansible knows about each host
+#   3. Run: ansible all -m setup -i inventory/inventory.yml -a "filter=ansible_memory_mb"
+#      Same as Case 4 but as a one-off ad-hoc command
+# ---------------------------------------------------------------
+
+## Commands
+# ansible-playbook -i inventory/inventory.yml 04_00_facts.yml
+# ansible all -m setup -i inventory/inventory.yml
+# ansible all -m setup -i inventory/inventory.yml -a "filter=ansible_memory_mb"

@@ -1,18 +1,76 @@
-- name: Variable sources — where can variables be defined?
+- name: Understanding Variable Sources in Ansible — group_vars, host_vars, vars, set_fact, register
   hosts: all
   become: true
   gather_facts: true
   vars:
-    # app_name: "Ansible" 
+    # Uncomment the line below to override app_name from group_vars/all.yml
+    # app_name: "Play-level override"
+    # This demonstrates variable precedence: play vars > group_vars
   tasks:
-    - name: Print Web variables
-      debug:
-        msg: "App Name is {{ app_name }} and Web Port is {{ web_port }}"
-      when: web_port is defined
 
-    - name: Print DB variabled
+    # ---------------------------------------------------------------
+    # CASE 1: group_vars/all.yml → applies to every host in inventory
+    # app_name is defined in inventory/group_vars/all.yml
+    # Both web01 and db01 see it — it is the broadest scope
+    # ---------------------------------------------------------------
+    - name: "GROUP_VARS/ALL | Print app_name — loaded from group_vars/all.yml"
       debug:
-        msg: "App Name is {{ app_name }} and DB Port is {{ db_port }}"
+        msg: "app_name = '{{ app_name }}' — from inventory/group_vars/all.yml (applies to all hosts)"
+
+    # ---------------------------------------------------------------
+    # CASE 2: group_vars/<groupname>.yml → applies only to that group
+    # db_port lives in inventory/group_vars/databases.yml
+    # Only db01 has this — web01 skips because it is not in the databases group
+    # ---------------------------------------------------------------
+    - name: "GROUP_VARS | Print db_port — only runs on hosts in the 'databases' group"
+      debug:
+        msg: "db_port = '{{ db_port }}' — from group_vars/databases.yml (databases group only)"
       when: db_port is defined
 
-# ansible-playbook -i inventory.yml 01_variable_source.yml --check
+    # ---------------------------------------------------------------
+    # CASE 3: host_vars/<hostname>.yml → applies to one specific host only
+    # web_port lives in inventory/host_vars/web01.yml
+    # Only web01 has this — db01 skips because its host_vars file is empty
+    # ---------------------------------------------------------------
+    - name: "HOST_VARS | Print web_port — only runs on web01"
+      debug:
+        msg: "web_port = '{{ web_port }}' — from host_vars/web01.yml (web01 only)"
+      when: web_port is defined
+
+    # ---------------------------------------------------------------
+    # CASE 4: set_fact — create a variable at runtime, mid-play
+    # Unlike vars:, set_fact runs during task execution
+    # Useful when the value depends on something computed earlier (facts, register)
+    # ---------------------------------------------------------------
+    - name: "SET_FACT | Build a URL at runtime from other known variables"
+      set_fact:
+        app_url: "http://{{ inventory_hostname }}:{{ web_port | default(80) }}"
+
+    - name: "SET_FACT | Print the runtime-built variable"
+      debug:
+        msg: "app_url = '{{ app_url }}' — created mid-play by set_fact, not in any file"
+
+    # ---------------------------------------------------------------
+    # CASE 5: register — capture a task's return value into a variable
+    # stat returns a dict: .stat.exists, .stat.size, .stat.isdir, etc.
+    # register stores that entire dict for use in later tasks
+    # ---------------------------------------------------------------
+    - name: "REGISTER | Check if /tmp exists — store the result"
+      stat:
+        path: /tmp
+      register: tmp_info
+
+    - name: "REGISTER | Print the captured result — tmp_info.stat.exists"
+      debug:
+        msg: "/tmp exists = {{ tmp_info.stat.exists }} — value came from the task above via register"
+
+# ---------------------------------------------------------------
+# WHAT TO TRY:
+#   1. Uncomment app_name in vars: — play vars wins over group_vars/all.yml
+#   2. Run with -e "app_name=from_cli" — extra vars beats everything
+#   3. Run with --check to dry-run without making changes
+# ---------------------------------------------------------------
+
+## Commands
+# ansible-playbook -i inventory/inventory.yml 01_variable_sources.yml
+# ansible-playbook -i inventory/inventory.yml 01_variable_sources.yml -e "app_name=from_cli"

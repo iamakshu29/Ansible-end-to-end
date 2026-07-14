@@ -1,19 +1,48 @@
-- name: This playbook will render a jinja2 template on localhost
-  hosts: localhost # implicit localhost added not in mini_project or any other 
+- name: Understanding Jinja2 Templates in Ansible — template module, .j2 files, vars_files
+  hosts: localhost  # running on localhost — template renders here and writes to /tmp/
   become: true
   gather_facts: true
   vars_files:
-    - vars/app_vars.yml
+    - vars/app_vars.yml   # loads app_name, web_port, debug_mode, allowed_ips, etc.
   tasks:
-    - name: Rendering the template with variables
+
+    # ---------------------------------------------------------------
+    # How the template module works:
+    #   1. Reads the .j2 file from src on the control node
+    #   2. Renders all {{ }} and {% %} expressions using available variables
+    #   3. Writes the rendered result to dest on the target host
+    #   4. Only updates the dest file if the rendered content actually changed (idempotent)
+    # Variables available inside the .j2 file: vars, vars_files, facts, hostvars
+    # ---------------------------------------------------------------
+    - name: "TEMPLATE | Render app_config.j2 → /tmp/app_config.conf"
       template:
         src: templates/app_config.j2
         dest: /tmp/app_config.conf
+      # First run:  file is new → reports 'changed'
+      # Second run: content unchanged → reports 'ok' (nothing written to disk)
 
-# Run it with
+    - name: "VERIFY | Read the rendered file to confirm output"
+      command: cat /tmp/app_config.conf
+      register: rendered_output
+      changed_when: false   # reading a file is never a change
 
+    - name: "VERIFY | Show what was rendered"
+      debug:
+        msg: "{{ rendered_output.stdout_lines }}"
+
+# ---------------------------------------------------------------
+# WHAT TO TRY:
+#   1. Run it — check /tmp/app_config.conf. Every {{ }} was replaced with a real value
+#   2. Change debug_mode in vars/app_vars.yml (true → false) — run again
+#      The {% if debug_mode %} block appears or disappears in the output file
+#   3. Add an IP to allowed_ips in vars/app_vars.yml — run again
+#      The {% for %} loop in the template adds the new entry automatically
+#   4. Break the .j2 file: leave {% if unclosed — run and read the TemplateSyntaxError
+# ---------------------------------------------------------------
+
+## Commands
 # ansible-playbook -i inventory/inventory.yml 06_templates.yml
-## Runs on localhost only (hosts: localhost), loads vars/app_vars.yml (vars_files) AND group_vars/all.yml from inventory dir
+## Runs on localhost, loads vars/app_vars.yml AND group_vars/all.yml from inventory dir
 ## vars_files has higher precedence than group_vars, so app_vars.yml wins on conflicts
 
 # ansible-playbook 06_templates.yml

@@ -1,28 +1,79 @@
-- name: Grouping task using blocks
+- name: Understanding Blocks in Ansible — block, rescue, always, shared attributes
   hosts: localhost
   become: false
   gather_facts: false
   tasks:
-    - block:
-        - name: Copy Content using copy Module.
+
+    # ---------------------------------------------------------------
+    # CASE 1: block / rescue / always — try/catch/finally for Ansible tasks
+    #
+    # block:  → tasks to attempt (like "try" in programming)
+    # rescue: → runs ONLY if ANY task in block fails (like "catch")
+    # always: → runs NO MATTER what — success or failure (like "finally")
+    #
+    # WHAT WILL HAPPEN IN THIS PLAY:
+    #   Task 1 (copy)    → succeeds  ✓
+    #   Task 2 (command) → 'uptme' is a typo — this FAILS  ✗
+    #   Task 3 (debug)   → SKIPPED — block stopped at task 2
+    #   rescue: fires    → prints which task failed
+    #   always: fires    → deletes the file created in task 1 (cleanup)
+    # ---------------------------------------------------------------
+    - name: "BLOCK | Demo with intentional failure in task 2"
+      block:
+        - name: "BLOCK TASK 1 | Create file — this succeeds"
           copy:
             src: files/sample_file.conf
             dest: /tmp/block_test.txt
 
-        - name: Command that fails
+        - name: "BLOCK TASK 2 | Bad command — FAILS intentionally ('uptme' is a typo for 'uptime')"
           command: uptme
+          # Failure here stops the block — task 3 is skipped, rescue: runs next
 
-        - name: This will not run, because of above wrong tasks
+        - name: "BLOCK TASK 3 | Never reaches here — block already failed at task 2"
           debug:
-            msg: "I will skip for sure"
+            msg: "You will never see this — execution jumped to rescue after task 2 failed"
 
       rescue:
-        - name: Printing the task name that got failed
+        # ansible_failed_task.name  = name of the task that caused the failure
+        # ansible_failed_result     = full result dict from the failed task
+        - name: "RESCUE | Print which task failed — only runs on block failure"
           debug:
-            msg: "Failed task name: {{ ansible_failed_task.name }}"
+            msg:
+              - "Rescue triggered — a task in the block failed"
+              - "Failed at task: '{{ ansible_failed_task.name }}'"
 
       always:
-        - name: Delete the file
+        # always: runs even after rescue — good for cleanup that must always happen
+        - name: "ALWAYS | Cleanup — runs regardless of success or failure"
           file:
             path: /tmp/block_test.txt
             state: absent
+
+    # ---------------------------------------------------------------
+    # CASE 2: block sharing when: and tags across all inner tasks
+    # Without block: you would repeat when: on every single task separately
+    # With block: define once on the block, applies to all tasks inside automatically
+    # ---------------------------------------------------------------
+    - name: "SHARED ATTRS | Block sharing when: and tags across inner tasks"
+      block:
+        - name: "SHARED BLOCK | Task A — inherits when: from parent block"
+          debug:
+            msg: "Task A runs — the block's when: applies to every task inside"
+
+        - name: "SHARED BLOCK | Task B — also inherits when: from parent block"
+          debug:
+            msg: "Task B runs — same condition, no need to repeat when: on every task"
+      when: inventory_hostname == "localhost"   # both tasks above share this condition
+      tags: demo                                # both tasks above share this tag
+
+# ---------------------------------------------------------------
+# WHAT TO TRY:
+#   1. Run as-is — task 3 is skipped, rescue fires, always fires
+#   2. Fix the typo: change 'uptme' → 'uptime' and run again
+#      Task 3 NOW runs, rescue does NOT run, but always still runs
+#   3. Add ignore_errors: true on task 2 — rescue no longer triggers (error absorbed)
+#   4. Move the failing command OUTSIDE the block — rescue does not catch it
+# ---------------------------------------------------------------
+
+## Commands
+# ansible-playbook 05_blocks.yml

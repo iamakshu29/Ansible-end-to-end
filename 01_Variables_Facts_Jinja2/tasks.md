@@ -58,6 +58,12 @@ Work through these in order. Read the concept, then do the exercise. Do not move
 - Inventory variables — inline next to a host or group in the inventory file
 - `group_vars/` directory — one file per group name, applies to every host in that group
 - `host_vars/` directory — one file per hostname, applies only to that specific host
+
+  > **Naming rule:** The filename inside `group_vars/` must exactly match the group name in inventory.
+  > The filename inside `host_vars/` must exactly match the host's `inventory_hostname`.
+  > Example: group `webservers` → `group_vars/webservers.yml` | host `web01` → `host_vars/web01.yml`
+  > A spelling or case mismatch means the file is silently ignored — Ansible gives no error or warning.
+
 - `vars:` section in the playbook — defined at the top of a play
 - `vars_files:` — a list of external YAML files to load into a play
 - `set_fact` module — create or update a variable at runtime, mid-play

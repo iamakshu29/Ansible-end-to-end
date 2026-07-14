@@ -1,35 +1,64 @@
-- name: Intro to handlers
+- name: Understanding Handlers in Ansible — notify, changed vs ok, flush_handlers
   hosts: localhost
   become: false
   gather_facts: false
   vars:
   tasks:
-    - name: Copy Content using copy Module.
+
+    # ---------------------------------------------------------------
+    # CASE 1: notify — queue a handler when a task reports 'changed'
+    # The copy task creates/updates /tmp/app.conf from files/sample_file.conf
+    # First run:  file is new → status 'changed' → handler is queued
+    # Second run: file unchanged → status 'ok' → handler does NOT fire
+    # Key rule: notify only QUEUES the handler — it does not run it immediately
+    # ---------------------------------------------------------------
+    - name: "NOTIFY | Copy config file — handler queued if this reports changed"
       copy:
         src: files/sample_file.conf
         dest: /tmp/app.conf
       notify: Something is Updated
-    
-    - name: Just another task.
+
+    # ---------------------------------------------------------------
+    # CASE 2: multiple notifies — same handler, still fires only ONCE
+    # Both this task and the copy task above notify the same handler name
+    # No matter how many tasks notify it, the handler runs exactly once per play
+    # ---------------------------------------------------------------
+    - name: "NOTIFY | Second task also notifies the same handler — still fires once"
       debug:
-        msg: Just another task message
+        msg: "This also notifies the handler — but handler still runs only once regardless of how many tasks notify it"
       notify: Something is Updated
 
-    # flush_handlers demo — forces pending handlers to run NOW, mid-play
-    # Without this, "Something is Updated" only fires at the very end of the play.
-    # With this, it fires here — before the next task runs.
-    - name: Flush handlers mid-play
+    # ---------------------------------------------------------------
+    # CASE 3: flush_handlers — force pending handlers to run NOW, not at play end
+    # Without flush_handlers: handler waits until ALL tasks in the play finish
+    # With flush_handlers: handler runs at this exact point, before the next task
+    #
+    # Real use case: you need a service restart BEFORE a health check task runs
+    #
+    # WHAT TO TRY: Comment out this block and re-run —
+    # the handler fires at the very END of the play instead of here
+    # ---------------------------------------------------------------
+    - name: "FLUSH | Force pending handlers to run now (mid-play)"
       meta: flush_handlers
 
-    - name: Task after flush - handler already fired above
+    - name: "AFTER FLUSH | This task runs AFTER the handler (handler already fired above)"
       debug:
-        msg: "Handler ran before this task due to flush_handlers"
+        msg: "Handler already ran before this task because of flush_handlers — not at end of play"
 
   handlers:
+    # Handlers live under handlers: at the same indentation level as tasks:
+    # They only run when: (a) notified AND (b) the notifying task reported 'changed'
     - name: Something is Updated
       debug:
-        msg: "Config changed - service would restart"
+        msg: "Handler fired — in a real playbook this would restart a service"
+
+# ---------------------------------------------------------------
+# WHAT TO TRY:
+#   1. Run it once — handler fires (copy creates new file = changed)
+#   2. Run it again without changing source file — copy reports 'ok', handler does NOT fire
+#   3. Comment out 'meta: flush_handlers' — handler moves to end of play
+#   4. Edit files/sample_file.conf content — next run copy reports 'changed' again
+# ---------------------------------------------------------------
 
 ## Commands
 # ansible-playbook 01_handlers.yml
-# Comment out the flush_handlers task and compare — handler moves to end of play.
