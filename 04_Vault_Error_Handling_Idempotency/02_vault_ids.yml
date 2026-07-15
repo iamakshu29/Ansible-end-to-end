@@ -2,11 +2,11 @@
   hosts: localhost
   tasks:
     - name: Load dev secrets
-      include_vars: vars/dev_secrets.yml
+      include_vars: vars/secrets_dev.yml
       when: env == "dev"
 
     - name: Load prod secrets
-      include_vars: vars/prod_secrets.yml
+      include_vars: vars/secrets_prod.yml
       when: env == "prod"
 
     - name: Print environment db url
@@ -17,5 +17,5 @@
 # Only loads dev_secrets.yml → only needs dev vault password
 # ansible-playbook 02_vault_ids.yml --vault-id dev@prompt -e env=dev
 
-# Only loads prod_secrets.yml → only needs prod vault password
+# Only loads secrets_prod.yml → only needs prod vault password
 # ansible-playbook 02_vault_ids.yml --vault-id prod@prompt -e env=prod
