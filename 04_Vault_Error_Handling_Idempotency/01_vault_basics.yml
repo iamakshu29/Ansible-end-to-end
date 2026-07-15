@@ -10,4 +10,6 @@
           - "DB Password is {{ db_password }}"
           - "API Keys is {{ api_key }}"
 
-# ansible-playbook 01_vault_basics --ask-vault-pass
+# ansible-vault encrypt inventory/group_vars/all/vault.yml
+# ansible-vault encrypt_string 'anotherpassword' --name 'api_key'
+# ansible-playbook 01_vault_basics.yml -i inventory/inventory.yml --ask-vault-pass
