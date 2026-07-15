@@ -1,0 +1,19 @@
+- name: Idempotency
+  hosts: localhost
+  tasks:
+    - name: Show Changed everytime
+      shell: echo "hello" >> /tmp/idempotency_test.txt
+
+    - name: Make above task Idempotent
+      lineinfile:
+        path: /tmp/idempotency_test_1.txt
+        line: "hello"
+        state: present
+
+    - name: Show Changed everytime
+      shell: mkdir /tmp/testdir
+
+    - name: Make above task Idempotent 
+      file: 
+        path: /tmp/testdir_1
+        state: directory

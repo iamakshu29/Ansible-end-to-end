@@ -18,3 +18,5 @@
     - name: Get output of command
       debug:
         var: result
+
+# ansible-playbook 03_error_handling.yml
