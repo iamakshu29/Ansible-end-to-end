@@ -15,7 +15,7 @@
 
 
 # Only loads dev_secrets.yml → only needs dev vault password
-# ansible-playbook 02_vault_ids.yml --vault-id dev@prompt -e env=dev
+# ansible-playbook -i inventory/inventory.yml 02_vault_ids.yml --vault-id dev@prompt -e env=dev
 
 # Only loads secrets_prod.yml → only needs prod vault password
-# ansible-playbook 02_vault_ids.yml --vault-id prod@prompt -e env=prod
+# ansible-playbook -i inventory/inventory.yml 02_vault_ids.yml --vault-id prod@prompt -e env=prod

@@ -1,0 +1,20 @@
+- name: Error Handling
+  hosts: localhost
+  any_errors_fatal: true
+  tasks:
+    - name: Run a command
+      command: /bin/false
+      ignore_errors: true
+
+    - name: Run a command
+      command: echo "Checking..."
+      changed_when: false
+
+    - name: Run a command
+      command: bash -c "exit 2"
+      register: result
+      failed_when: result.rc not in [0, 2]
+    
+    - name: Get output of command
+      debug:
+        var: result
