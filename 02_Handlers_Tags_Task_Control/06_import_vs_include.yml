@@ -1,35 +1,64 @@
-- name: Tutorial on how to use import and include
+- name: Understanding import_tasks vs include_tasks — static vs dynamic task loading
   hosts: localhost
   become: false
   gather_facts: false
   vars:
+    # task_file is a play-level var — import_tasks can resolve it at parse time
+    # Uncomment to enable the variable-filename include in Case 3
     # task_file: deploy
   tasks:
-    - name: Calling Install tasks
+
+    # ---------------------------------------------------------------
+    # CASE 1: import_tasks — STATIC (resolved at PARSE time, before any task runs)
+    # Ansible reads install.yml when it parses the playbook, not when executing
+    # Tags on the import: PASS THROUGH to every task inside install.yml
+    # Run with --tags install → inner tasks from install.yml execute
+    # ---------------------------------------------------------------
+    - name: "IMPORT | Load install.yml — static, tags pass through to inner tasks"
       import_tasks: tasks/install.yml
-      tags: 
+      tags:
         - install
-    
-    - name: Calling Include tasks
+
+    # ---------------------------------------------------------------
+    # CASE 2: include_tasks — DYNAMIC (resolved at RUNTIME, when Ansible reaches this line)
+    # Ansible loads configure.yml only when execution reaches this task
+    # Tags on the include: do NOT pass through to tasks inside configure.yml
+    # Run with --tags configure → this include task runs but inner tasks have no tag filter
+    # ---------------------------------------------------------------
+    - name: "INCLUDE | Load configure.yml — dynamic, tags do NOT pass through"
       include_tasks: tasks/configure.yml
-      tags: 
+      tags:
         - configure
 
-    - name: Calling Include tasks
+    # ---------------------------------------------------------------
+    # CASE 3: include_tasks with a variable filename — only possible with include_tasks
+    # import_tasks resolves filenames at parse time — runtime variables (facts, registered
+    # vars) are not available yet, so a runtime variable filename causes an error
+    # include_tasks resolves at runtime — any variable works, including facts
+    #
+    # Uncomment task_file: deploy in vars: above to enable this task
+    # Or pass via CLI: -e "task_file=deploy"
+    # ---------------------------------------------------------------
+    - name: "INCLUDE | Load task file by variable filename — only works with include"
       include_tasks: "tasks/{{ task_file }}.yml"
-      tags: 
+      tags:
         - deploy
 
-### Commands & Results
+# ---------------------------------------------------------------
+# KEY DIFFERENCE:
+#   import_tasks  → parse time, tags pass through, cannot use runtime variables as filename
+#   include_tasks → runtime, tags don't pass through, any variable works as filename
+#
+# WHAT TO TRY:
+#   1. --tags install   → import lets tags reach inner tasks — inner tasks run
+#   2. --tags configure → include runs but inner tasks have no tag — observe behavior
+#   3. --tags deploy -e "task_file=deploy" → variable filename resolves at runtime
+#   4. Change include_tasks → import_tasks on task 3 with task_file as a runtime var
+#      (e.g., from register or facts) — observe the error
+# ---------------------------------------------------------------
+
+## Commands
 # ansible-playbook 06_import_vs_include.yml --tags install
-#   -> Runs tasks inside install.yml directly (import is static, tags pass through to inner tasks)
-#
 # ansible-playbook 06_import_vs_include.yml --tags configure
-#   -> First includes the file at runtime, then runs tasks inside it
-#
-# ansible-playbook 06_import_vs_include.yml --tags deploy
-#   -> Same as configure — include resolves the variable filename at runtime
-#
-# Note: import_tasks with a variable filename (task_file defined in vars:) did NOT error
-#   because play-level vars are resolved at parse time — Ansible knows the filename before running.
-#   The error only happens when the variable is a runtime value (fact, registered var, etc.)
+# ansible-playbook 06_import_vs_include.yml --tags deploy -e "task_file=deploy"
+# ansible-playbook 06_import_vs_include.yml --list-tasks

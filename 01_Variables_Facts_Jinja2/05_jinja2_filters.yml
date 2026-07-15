@@ -1,26 +1,67 @@
-- name: Tutorial About Jinja2 syntax and its filters
+- name: Understanding Jinja2 Filters in Ansible — default, map, join, selectattr, chaining
   hosts: all
   become: true
   gather_facts: false
+  # servers variable is loaded from inventory/group_vars/webservers.yml (for web01)
+  # and inventory/group_vars/databases.yml (for db01) — each host sees its own group's list
   tasks:
-    - name: "Use of default if a variable is undefined"
-      debug:
-        msg: "Undefined Variable is {{ undef_var | default('not set') }}"
 
-    - name: "Print only server names as list"
+    # ---------------------------------------------------------------
+    # CASE 1: default — safe fallback for any undefined variable
+    # undef_var is never defined anywhere in this playbook or inventory
+    # Without | default(): Ansible throws UndefinedError and fails the play
+    # With | default('not set'): returns the fallback string safely, no error
+    # ---------------------------------------------------------------
+    - name: "DEFAULT | Safely print an undefined variable with fallback"
       debug:
-        msg: "{{ servers | map(attribute='name') }}"
+        msg: "undef_var = {{ undef_var | default('not set') }} — no error because default() catches it"
 
-    - name: "Print only server names as comma separated in a single string => 'a,b,c'"
+    # ---------------------------------------------------------------
+    # CASE 2: map(attribute=) — extract one field from every dict in a list
+    # servers is a list of dicts: [{ name: '...', role: '...' }, ...]
+    # map extracts just the 'name' field from each dict → | list converts the result
+    # ---------------------------------------------------------------
+    - name: "MAP | Extract only the 'name' field from each server dict"
       debug:
-        msg: "{{ servers | map(attribute='name') | join(', ') }}"
-    
-    - name: "Print all attributes of server, where role = web"
-      debug:
-        msg: "{{ servers | selectattr('role','equalto','web') }}"
-    
-    - name: "Print only name attribute of server, where role = web"
-      debug:
-        msg: "{{ servers | selectattr('role','equalto','web') | map(attribute='name') }}"
+        msg: "Server names: {{ servers | map(attribute='name') | list }}"
 
-    
+    # ---------------------------------------------------------------
+    # CASE 3: join — combine a list into one string with a separator
+    # Chain: map to get names (a list), then join to collapse into one string
+    # Output: "web01, web02, web03" (for the webservers group)
+    # ---------------------------------------------------------------
+    - name: "JOIN | Print all server names as a comma-separated string"
+      debug:
+        msg: "All servers: {{ servers | map(attribute='name') | join(', ') }}"
+
+    # ---------------------------------------------------------------
+    # CASE 4: selectattr — filter a list of dicts by a field value
+    # Returns only the dicts where role == 'web'
+    # web01 host: returns servers (all are role=web)
+    # db01 host:  returns empty list (all are role=db)
+    # Try changing 'web' to 'db' to flip the results
+    # ---------------------------------------------------------------
+    - name: "SELECTATTR | Return only server dicts where role = 'web'"
+      debug:
+        msg: "Filtered servers (role=web): {{ servers | selectattr('role', 'equalto', 'web') | list }}"
+
+    # ---------------------------------------------------------------
+    # CASE 5: chaining filters — selectattr + map in one expression
+    # Step 1: selectattr keeps only dicts where role == 'web'
+    # Step 2: map extracts just the 'name' from those filtered dicts
+    # Result: a clean list of names, not the full dicts
+    # ---------------------------------------------------------------
+    - name: "CHAIN | Names of servers where role = 'web' — selectattr piped into map"
+      debug:
+        msg: "Web server names: {{ servers | selectattr('role', 'equalto', 'web') | map(attribute='name') | list }}"
+
+# ---------------------------------------------------------------
+# WHAT TO TRY:
+#   1. Change 'web' → 'db' in selectattr — different servers filtered per host
+#   2. Try: servers | map(attribute='role') | list — extract roles instead of names
+#   3. Try: servers | length — count how many servers are in this host's group
+#   4. Try: servers | map(attribute='name') | join(' | ') — different separator
+# ---------------------------------------------------------------
+
+## Commands
+# ansible-playbook -i inventory/inventory.yml 05_jinja2_filters.yml

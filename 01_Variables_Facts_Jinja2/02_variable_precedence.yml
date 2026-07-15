@@ -1,18 +1,56 @@
-- name: Understanding Variable Precedence in this playbook
+- name: Understanding Variable Precedence in Ansible — host_vars beats group_vars beats play vars
   hosts: all
   become: true
-  gather_facts: true
   vars:
+    # app_cloud is defined HERE (play vars) — beats group_vars and host_vars for app_cloud if exists
     app_cloud: AWS
+    # EXPERIMENT: Uncomment below — play vars wins over any group_vars for app_env too
+    # app_env: "play-level"
   tasks:
-    - name: Print Web variables
-      debug:
-        msg: "App Env is {{ app_env }}"
 
-    - name: Print DB variables
+    # ---------------------------------------------------------------
+    # CASE 1: app_env is defined in THREE places at once — who wins?
+    #   inventory/group_vars/all.yml         → "local"  (lowest — applies to all hosts)
+    #   inventory/group_vars/webservers.yml  → "test"   (overrides all.yml for web hosts)
+    #   inventory/host_vars/web01.yml        → "prod"   (overrides everything for web01)
+    #
+    # PREDICT before running:
+    #   web01 → should print "prod"  (host_vars wins)
+    #   db01  → should print "local" (no group_vars override, falls to all.yml)
+    # ---------------------------------------------------------------
+    - name: "PRECEDENCE | app_env — which source wins? Predict first, then run"
       debug:
-        msg: "App Env is {{ app_env }}"
-    
-    - name: Print play vars
+        msg: "Host '{{ inventory_hostname }}' — app_env = '{{ app_env }}'"
+
+    # ---------------------------------------------------------------
+    # CASE 2: play vars — only defined in vars: section above
+    # app_cloud is not in any group_vars or host_vars file
+    # Every host prints the same value — it comes purely from play vars
+    # ---------------------------------------------------------------
+    - name: "PLAY VARS | app_cloud — same on all hosts, comes only from vars:"
       debug:
-        msg: "App is present in {{ app_cloud }}"
+        msg: "Host '{{ inventory_hostname }}' — app_cloud = '{{ app_cloud }}' (from play vars)"
+
+    # ---------------------------------------------------------------
+    # CASE 3: group membership determines which group_vars are loaded
+    # group_names shows exactly which groups this host belongs to
+    # Useful for understanding WHY a host got a certain variable value
+    # ---------------------------------------------------------------
+    - name: "GROUP MEMBERSHIP | Show which groups this host belongs to"
+      debug:
+        msg: "Host '{{ inventory_hostname }}' is in groups: {{ group_names }} — app_env = '{{ app_env }}'"
+
+# ---------------------------------------------------------------
+# WHAT TO TRY (do these in order — each one peels off one layer):
+#   1. Run as-is — predict web01 vs db01 output BEFORE running
+#   2. Comment out app_env in host_vars/web01.yml → web01 falls back to webservers group value
+#   3. Comment out app_env in group_vars/webservers.yml too → web01 falls back to all.yml
+#   4. Uncomment app_env: "play-level" in vars: above → play vars wins over all files
+#   5. Run with -e "app_env=cli" → extra vars beats everything
+#   6. Run with -vvv to trace exactly which value Ansible picks and from where
+# ---------------------------------------------------------------
+
+## Commands
+# ansible-playbook -i inventory/inventory.yml 02_variable_precedence.yml
+# ansible-playbook -i inventory/inventory.yml 02_variable_precedence.yml -e "app_env=cli_override"
+# ansible-playbook -i inventory/inventory.yml 02_variable_precedence.yml -vvv

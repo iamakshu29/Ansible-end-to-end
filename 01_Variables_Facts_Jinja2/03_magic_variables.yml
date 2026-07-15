@@ -1,27 +1,58 @@
-- name: Understand magic variables or built-in variables which Ansible provides
+- name: Understanding Magic Variables in Ansible — inventory_hostname, group_names, groups, hostvars
   hosts: all
   become: true
-  gather_facts: true
   vars:
   tasks:
-    - name: Print Inventory Hostname
-      debug:
-        msg: "Inventory Hostname is {{ inventory_hostname }}"
 
-    - name: Print Group name
+    # ---------------------------------------------------------------
+    # CASE 1: inventory_hostname — the name of this host as written in inventory
+    # NOT the real OS hostname — it is exactly what you typed under hosts: in inventory.yml
+    # Useful for building file paths, URLs, or conditionals based on host identity
+    # ---------------------------------------------------------------
+    - name: "MAGIC VAR | inventory_hostname — this host's name in inventory"
       debug:
-        msg: "Group names is {{ group_names }}"
+        msg: "inventory_hostname = '{{ inventory_hostname }}'"
 
-    - name: Print Group map
+    # ---------------------------------------------------------------
+    # CASE 2: group_names — list of groups the current host belongs to
+    # Every host is automatically in 'all' — plus any explicit groups from inventory
+    # Useful in when: conditions: when: "'webservers' in group_names"
+    # ---------------------------------------------------------------
+    - name: "MAGIC VAR | group_names — all groups this host belongs to"
       debug:
-        msg: "Group map for {{ inventory_hostname }} :- {{ groups }}"
-        
-    - name: Print Host map
-      debug:
-        msg: "Host map :- {{ hostvars }}"
+        msg: "Host '{{ inventory_hostname }}' belongs to: {{ group_names }}"
 
-    - name: Using other hosts variables in another host
+    # ---------------------------------------------------------------
+    # CASE 3: groups — a dict of ALL groups and their member hostnames
+    # Inventory-wide: same output on every host regardless of which host you are on
+    # groups['all'] = all hosts | groups['webservers'] = web hosts only
+    # ---------------------------------------------------------------
+    - name: "MAGIC VAR | groups — full map of every group and its member hosts"
       debug:
-        msg: 
-          - "db_port is {{ hostvars['db01.com']['db_port'] }}"
-          - "db_port is {{ hostvars[groups['databases'][0]]['db_port'] }}"
+        msg: "Complete groups map: {{ groups }}"
+
+    # ---------------------------------------------------------------
+    # CASE 4: hostvars — dict of ALL hosts and ALL their variables
+    # While Ansible runs tasks on web01, you can still access db01's variables
+    # hostvars is the bridge for cross-host variable access
+    # ---------------------------------------------------------------
+    - name: "MAGIC VAR | hostvars — every host's variables visible from here"
+      debug:
+        msg: "All hostvars: {{ hostvars }}"
+
+    # ---------------------------------------------------------------
+    # CASE 5: Cross-host variable access — the main use case for hostvars
+    # Running on any host but reading db01's db_port variable
+    #
+    # Way 1 — hardcode the hostname: works but fragile if hostname changes
+    # Way 2 — use groups[] to look up dynamically: preferred, survives inventory changes
+    #          groups['databases'][0] = the first host in the databases group
+    # ---------------------------------------------------------------
+    - name: "HOSTVARS | Access db01's db_port from any host — two ways"
+      debug:
+        msg:
+          - "Way 1 (hardcoded hostname): db_port = {{ hostvars['db01']['db_port'] }}"
+          - "Way 2 (via groups lookup): db_port = {{ hostvars[groups['databases'][0]]['db_port'] }}"
+
+## Commands
+# ansible-playbook -i inventory/inventory.yml 03_magic_variables.yml

@@ -1,20 +1,49 @@
-- name: This Playbook is provide tutorial on how to use Ansible Facts using setup module, if gather_facts are false
+- name: Understanding Selective Fact Gathering — gather_facts false, explicit setup module calls
   hosts: all
   become: true
-  gather_facts: false
+  gather_facts: false   # INTENTIONALLY false — ansible_facts is EMPTY until setup is called explicitly
   tasks:
-    - name: "Gather memory facts using setup module"
+
+    # ---------------------------------------------------------------
+    # WHY gather_facts: false?
+    # Full fact gathering (gather_facts: true) runs setup on every host at play start — can be slow
+    # With gather_facts: false you control exactly WHAT to gather and WHEN
+    # Each setup call below adds only the filtered facts to ansible_facts
+    # ---------------------------------------------------------------
+
+    # ---------------------------------------------------------------
+    # CASE 1: Selective gather — memory facts only
+    # filter: ansible_memory_mb tells setup to collect only memory data
+    # ansible_facts['memory_mb'] is now available but NOT os_family, distribution, etc.
+    # ---------------------------------------------------------------
+    - name: "SETUP (selective) | Gather ONLY memory facts"
       ansible.builtin.setup:
         filter: ansible_memory_mb
 
-    - name: "Print memory facts"
+    - name: "PRINT | Total memory from selective gather"
       debug:
-        msg: "Total memory is {{ ansible_facts['memory_mb']['real']['total'] }} MB"
-    
-    - name: "Gather only distribution name using setup module"
+        msg: "Total memory = {{ ansible_facts['memory_mb']['real']['total'] }} MB"
+
+    # ---------------------------------------------------------------
+    # CASE 2: Gather a second fact type — distribution only
+    # Each setup call adds to ansible_facts without wiping previous gathers
+    # After this, both memory_mb AND distribution are available
+    # ---------------------------------------------------------------
+    - name: "SETUP (selective) | Gather ONLY distribution name"
       ansible.builtin.setup:
         filter: ansible_distribution
 
-    - name: "Print the distribution"
+    - name: "PRINT | OS distribution from selective gather"
       debug:
-        msg: "The OS is {{ ansible_facts['distribution'] }}"
+        msg: "OS = {{ ansible_facts['distribution'] }}"
+
+# ---------------------------------------------------------------
+# WHAT TO TRY:
+#   1. Keep gather_facts: false, remove the setup tasks, try to use ansible_facts['os_family']
+#      It fails — nothing was gathered, ansible_facts is empty
+#   2. Change gather_facts: false → true and remove setup tasks
+#      Everything still works — Ansible ran setup automatically and filled ansible_facts
+# ---------------------------------------------------------------
+
+## Commands
+# ansible-playbook -i inventory/inventory.yml 04_01_facts.yml

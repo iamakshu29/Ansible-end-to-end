@@ -1,4 +1,4 @@
-- name: Playbook that generates a system report file for each host
+- name: Mini Project — Dynamic System Report using template, vars_prompt, register, when
   hosts: all
   become: true
   gather_facts: true
@@ -7,31 +7,47 @@
   vars_prompt:
     - name: operator_name
       prompt: "Enter operator name"
-      private: false # show input as typed — not a secret
+      private: false   # false = visible as typed (not a password)
   tasks:
-    - name: Creating System report
+
+    # ---------------------------------------------------------------
+    # CASE 1: Render the report — only when host has enough RAM
+    # when: uses a fact gathered at play start (gather_facts: true)
+    # register captures the task result so we can check .changed later
+    # If RAM < 900 MB, this task is SKIPPED and the file is not created
+    # ---------------------------------------------------------------
+    - name: "TEMPLATE | Generate system report — skipped if RAM < 900 MB"
       template:
         src: templates/system_report.j2
         dest: /tmp/system_report_{{ inventory_hostname }}.txt
       when: ansible_facts['memtotal_mb'] > 900
-      register: report_result       # <-- save the task's return value here
+      register: report_result
 
-    - name: Report generated
+    # ---------------------------------------------------------------
+    # CASE 2: Print summary line — only when report was generated
+    # ---------------------------------------------------------------
+    - name: "SUMMARY | Report generated — print one-line status"
       debug:
         msg: "Report created for {{ inventory_hostname }} | RAM: {{ ansible_facts['memtotal_mb'] }} MB | OS: {{ ansible_facts['os_family'] }}"
       when: ansible_facts['memtotal_mb'] > 900
 
-    - name: Report not generated
+    - name: "SUMMARY | Report skipped — RAM below threshold"
       debug:
-        msg: "Report not Generated as total memory is {{ ansible_facts['memtotal_mb'] }} which is < 900 MB"
+        msg: "Report NOT generated — total memory {{ ansible_facts['memtotal_mb'] }} MB is below 900 MB threshold"
       when: ansible_facts['memtotal_mb'] < 900
 
-    - name: Report status
+    # ---------------------------------------------------------------
+    # CASE 3: register result — check whether the file actually changed
+    # report_result.changed = true  → file was written (new or updated content)
+    # report_result.changed = false → file already existed with same content (idempotent)
+    # ---------------------------------------------------------------
+    - name: "REGISTER | Print whether report file changed or was already current"
       debug:
-        msg: "{{ 'File CHANGED' if report_result.changed else 'Already up to date' }}"
+        msg: "{{ 'File CHANGED — new content written' if report_result.changed else 'File UNCHANGED — already up to date' }}"
       when: ansible_facts['memtotal_mb'] > 900
 
-## Command to run on localhost
+## Commands
+# Run on localhost only (no inventory):
 # ansible-playbook -i "localhost," mini_project.yml -e "ansible_connection=local"
-## Command to run on inventory hosts
+# Run on actual inventory hosts:
 # ansible-playbook -i inventory/inventory.yml mini_project.yml

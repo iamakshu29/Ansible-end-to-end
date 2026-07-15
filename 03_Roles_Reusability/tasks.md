@@ -80,8 +80,8 @@ Only `tasks/` is required. All other directories are optional. Ansible automatic
 
 - Create the full directory structure for the `webserver` role manually (no shortcuts)
 - `tasks/main.yml`: use `import_tasks` to call `install.yml` and `configure.yml`
-- `tasks/install.yml`: a debug task that prints `"Installing nginx"`
-- `tasks/configure.yml`: a debug task that prints `"Configuring nginx"`
+  - `tasks/install.yml`: a debug task that prints `"Installing nginx"`
+  - `tasks/configure.yml`: a debug task that prints `"Configuring nginx"`
 - `handlers/main.yml`: a handler that prints `"Nginx restarted"`
 - `defaults/main.yml`: set `http_port: 80` and `server_name: "localhost"`
 - `vars/main.yml`: set `nginx_user: "www-data"`

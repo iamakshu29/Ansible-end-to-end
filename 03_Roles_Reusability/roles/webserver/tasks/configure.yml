@@ -1,0 +1,5 @@
+- name: "CONFIGURE | Configure service nginx"
+  debug:
+    msg: "Configuring service nginx"
+  tags:
+    - configure

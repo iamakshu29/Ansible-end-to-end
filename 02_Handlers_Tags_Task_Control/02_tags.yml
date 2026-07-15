@@ -1,56 +1,78 @@
-- name: How tags work
+- name: Understanding Tags in Ansible — install, configure, always, never, --tags, --skip-tags
   hosts: localhost
   become: false
   gather_facts: false
   tasks:
+
+    # ---------------------------------------------------------------
+    # CASE 1: Regular tags — run only these tasks when --tags install is passed
+    # Without any tag filter: these run normally as part of the full play
+    # ---------------------------------------------------------------
     - name: "INSTALL | Install package A"
       debug:
-        msg: "Installing package A"
+        msg: "Installing package A — runs with: --tags install"
       tags:
         - install
 
     - name: "INSTALL | Install package B"
       debug:
-        msg: "Installing package B"
+        msg: "Installing package B — runs with: --tags install"
       tags:
         - install
 
+    # ---------------------------------------------------------------
+    # CASE 2: configure tag — independent group, separate from install
+    # Run with --tags configure to run ONLY these two tasks (+ always)
+    # ---------------------------------------------------------------
     - name: "CONFIGURE | Configure service A"
       debug:
-        msg: "Configuring service A"
+        msg: "Configuring service A — runs with: --tags configure"
       tags:
         - configure
 
     - name: "CONFIGURE | Configure service B"
       debug:
-        msg: "Configuring service B"
+        msg: "Configuring service B — runs with: --tags configure"
       tags:
         - configure
 
-    - name: "DEBUG | Debug info (tagged never — skipped by default)"
+    # ---------------------------------------------------------------
+    # CASE 3: 'never' — built-in tag, SKIPPED in every normal run
+    # Does NOT run with --tags install, configure, or no filter
+    # Only runs when EXPLICITLY requested: --tags debug or --tags never
+    # Use case: verbose variable dumps you never want in normal runs
+    # ---------------------------------------------------------------
+    - name: "DEBUG | Dump all variables (tagged 'never' — skipped by default)"
       debug:
         msg: "This only runs when explicitly requested with --tags debug or --tags never"
       tags:
         - debug
         - never
 
-    - name: "ALWAYS | This task always runs regardless of tags"
+    # ---------------------------------------------------------------
+    # CASE 4: 'always' — built-in tag, runs regardless of other tag filters
+    # Runs even when you specify --tags install or --skip-tags configure
+    # The ONLY way to stop it is --skip-tags always
+    # Use case: version prints, audit logging, pre-flight sanity checks
+    # ---------------------------------------------------------------
+    - name: "ALWAYS | This task runs regardless of which tags are specified"
       debug:
-        msg: "This runs even when filtering by --tags install or --skip-tags configure, but not when skipped explicitly --skip-tags always"
+        msg: "This runs even when filtering by --tags install or --skip-tags configure — but not --skip-tags always"
       tags:
         - always
 
-## Run playbook taks tagged with tag -install
+# ---------------------------------------------------------------
+# WHAT TO TRY:
+#   1. --tags install       → only INSTALL tasks + ALWAYS task run
+#   2. --skip-tags configure → everything EXCEPT configure tasks
+#   3. --tags debug         → DEBUG task (tagged never) + ALWAYS task run
+#   4. --tags never         → same result as --tags debug here
+#   5. --list-tasks         → preview all tasks and their tags without running
+# ---------------------------------------------------------------
+
+## Commands
 # ansible-playbook 02_tags.yml --tags install
-
-## Run all playbook tasks except tagged with tag -configure
 # ansible-playbook 02_tags.yml --skip-tags configure
-
-## Run playbook taks tagged with tag -debug
 # ansible-playbook 02_tags.yml --tags debug
-
-## Run playbook taks tagged with tag -never
 # ansible-playbook 02_tags.yml --tags never
-
-## Run command to list all tasks
 # ansible-playbook 02_tags.yml --list-tasks

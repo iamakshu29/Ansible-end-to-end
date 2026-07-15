@@ -1,0 +1,5 @@
+- name: "INSTALL | Install package nginx"
+  debug:
+    msg: "Installing nginx"
+  tags:
+    - install

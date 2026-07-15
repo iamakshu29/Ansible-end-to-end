@@ -1,15 +1,51 @@
-- name: Check Variables defined and undefined output
+- name: Understanding Defined vs Undefined Variables — is defined, is undefined, default filter
   hosts: all
   become: true
   gather_facts: true
   vars:
-    # my_var: large
+    # Uncomment to see Case 2 run and Case 3 skip.
+    # Comment out to see Case 2 skip and Case 3 run.
+    # my_var: "large"
   tasks:
-    - name: Print with default - safe fallback
+
+    # ---------------------------------------------------------------
+    # CASE 1: default filter — never fail on an undefined variable
+    # undef_var is never defined anywhere in this playbook or inventory
+    # Without | default(): Ansible throws UndefinedError and stops the play
+    # With | default('fallback'): safely returns the fallback string, no crash
+    # ---------------------------------------------------------------
+    - name: "DEFAULT | Print undef_var with safe fallback — no error even though it is never defined"
       debug:
-        msg: "{{ undef_var | default('fallback value') }}"
-    
-    - name: Skip when undefined - only runs if my_var is defined
+        msg: "undef_var = {{ undef_var | default('fallback value — variable was never defined') }}"
+
+    # ---------------------------------------------------------------
+    # CASE 2: when: var is defined — skip the task entirely if variable is absent
+    # my_var is commented out in vars: above → task is SKIPPED (output shows 'skipping')
+    # Uncomment my_var in vars: above → task RUNS (output shows 'ok')
+    # ---------------------------------------------------------------
+    - name: "IS DEFINED | Only runs when my_var is set — currently skipped"
       debug:
-        msg: "{{ undef_var | default('fallback value') }}"
-      when: my_var is defined # works only if defined, try comment & uncomment the variable
+        msg: "my_var is defined with value: '{{ my_var }}' — uncomment my_var in vars: to reach this task"
+      when: my_var is defined
+
+    # ---------------------------------------------------------------
+    # CASE 3: when: var is undefined — opposite of is defined
+    # Useful when you want to take action precisely BECAUSE a variable is missing
+    # my_var commented out → this task RUNS
+    # my_var uncommented  → this task SKIPS
+    # ---------------------------------------------------------------
+    - name: "IS UNDEFINED | Runs ONLY when my_var is absent"
+      debug:
+        msg: "my_var is not set — this task runs when my_var is absent from vars:"
+      when: my_var is undefined
+
+# ---------------------------------------------------------------
+# WHAT TO TRY (in order):
+#   1. Run as-is — Case 2 skips, Case 3 runs
+#   2. Uncomment my_var: "large" — Case 2 runs, Case 3 skips
+#   3. Comment it back out, run with -e "my_var=from_cli" — Case 2 runs via extra vars
+# ---------------------------------------------------------------
+
+## Commands
+# ansible-playbook -i inventory/inventory.yml 07_define_undefine.yml
+# ansible-playbook -i inventory/inventory.yml 07_define_undefine.yml -e "my_var=from_cli"
