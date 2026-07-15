@@ -1,13 +1,21 @@
-- name: Vault Tutorial
+- name: Vault IDs Tutorial
   hosts: localhost
-  become: true
-  vars:
   tasks:
-    - name: Print app_name, db_password and api_key
-      debug:
-        msg: 
-          - "App Name is {{ app_name }}"
-          - "DB Password is {{ db_password }}"
-          - "API Keys is {{ api_key }}"
+    - name: Load dev secrets
+      include_vars: vars/dev_secrets.yml
+      when: env == "dev"
 
-# ansible-playbook 01_vault_basics --ask-vault-pass
+    - name: Load prod secrets
+      include_vars: vars/prod_secrets.yml
+      when: env == "prod"
+
+    - name: Print environment db url
+      debug:
+        msg: "DB URL: {{ environment_db_url }}"
+
+
+# Only loads dev_secrets.yml → only needs dev vault password
+# ansible-playbook 02_vault_ids.yml --vault-id dev@prompt -e env=dev
+
+# Only loads prod_secrets.yml → only needs prod vault password
+# ansible-playbook 02_vault_ids.yml --vault-id prod@prompt -e env=prod
