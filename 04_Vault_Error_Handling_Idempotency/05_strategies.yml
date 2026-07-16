@@ -1,0 +1,19 @@
+- name: Running Strategies
+  hosts: all
+  serial: 1
+  tasks:
+    - name: Task 1
+      debug: 
+        msg: "Task 1 Completed by {{ ansible_hostname }}"
+    
+    - name: Task 2
+      debug: 
+        msg: "Task 2 Completed by {{ ansible_hostname }}"
+
+    - name: Task 3
+      debug: 
+        msg: "Task 3 Completed by {{ ansible_hostname }}"
+
+    - name: Task 4
+      debug: 
+        msg: "Task 4 Completed by {{ ansible_hostname }}"

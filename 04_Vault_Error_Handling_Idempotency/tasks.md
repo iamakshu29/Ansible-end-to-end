@@ -137,10 +137,10 @@ Idempotent = running the same playbook 10 times produces the exact same end stat
 
 **Idempotent alternatives:**
 
-| Non-idempotent | Idempotent replacement |
-|---|---|
-| `shell: echo "x" >> file` | `lineinfile` |
-| `shell: mkdir /opt/app` | `file: state=directory` |
+| Non-idempotent               | Idempotent replacement       |
+| ---------------------------- | ---------------------------- |
+| `shell: echo "x" >> file`  | `lineinfile`               |
+| `shell: mkdir /opt/app`    | `file: state=directory`    |
 | `shell: apt install nginx` | `package` / `apt` module |
 
 **Exercise — 04_idempotency.yml:**
@@ -223,18 +223,18 @@ Build a playbook that handles secrets properly, fails gracefully, and is fully i
 
 ## Vocabulary to know cold
 
-| Term | Definition |
-|------|-----------|
-| vault | Ansible's built-in AES-256 encryption for secrets at rest |
-| vault ID | a named password identity; allows different passwords per environment |
-| idempotent | produces the same end state on every run, no matter how many times |
-| `changed_when` | overrides Ansible's built-in change detection with a custom condition |
-| `failed_when` | overrides Ansible's built-in failure detection with a custom condition |
-| `ignore_errors` | continue the play even if a task fails (use sparingly) |
-| `serial` | the number or percentage of hosts to process in a single batch |
-| `rescue` | tasks that run when a block fails — Ansible's catch/except |
-| `always` | tasks that always run after a block regardless of outcome — like finally |
-| `any_errors_fatal` | abort the entire play if any host fails |
+| Term                 | Definition                                                                |
+| -------------------- | ------------------------------------------------------------------------- |
+| vault                | Ansible's built-in AES-256 encryption for secrets at rest                 |
+| vault ID             | a named password identity; allows different passwords per environment     |
+| idempotent           | produces the same end state on every run, no matter how many times        |
+| `changed_when`     | overrides Ansible's built-in change detection with a custom condition     |
+| `failed_when`      | overrides Ansible's built-in failure detection with a custom condition    |
+| `ignore_errors`    | continue the play even if a task fails (use sparingly)                    |
+| `serial`           | the number or percentage of hosts to process in a single batch            |
+| `rescue`           | tasks that run when a block fails — Ansible's catch/except               |
+| `always`           | tasks that always run after a block regardless of outcome — like finally |
+| `any_errors_fatal` | abort the entire play if any host fails                                   |
 
 ---
 
