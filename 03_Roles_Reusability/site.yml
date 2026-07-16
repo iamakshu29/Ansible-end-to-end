@@ -1,4 +1,7 @@
 - name: Deploy webserver
   hosts: localhost
+  vars:
+    http_port: 8080
+    nginx_user: "myuser"
   roles:
     - webserver
