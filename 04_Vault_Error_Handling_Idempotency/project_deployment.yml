@@ -29,7 +29,7 @@
         
         - name: Simulating Template Tasks
           template:
-            src: templates/sample_template.j2
+            src: template/sample_template.j2
             dest: /tmp/project/{{ item }}.conf
           loop: "{{ filename }}"
       rescue:
@@ -53,3 +53,6 @@
         path: /tmp/project
         state: absent
       tags: [rollback, never]
+
+# ansible-vault encrypt vault.yml
+# ansible-playbook -i inventory/inventory_05.yml project_deployment.yml --ask-vault-pass
