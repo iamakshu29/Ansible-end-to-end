@@ -163,7 +163,7 @@ Why handlers exist: restarting nginx every time a config task runs is wrong. Han
 | | `import_*` (static) | `include_*` (dynamic) |
 |---|---|---|
 | Processed | at parse time | at runtime |
-| Tags work on inner tasks | ✅ yes | ❌ no |
+| Tags work on inner tasks | ✅ yes — tag is copied down to every task inside | ❌ no — tag stays on the include task only, inner tasks are unreachable from outside |
 | Can loop over it | ❌ no | ✅ yes |
 | Variable as filename | ❌ no | ✅ yes |
 | `when:` behaviour | applies to every task inside | decides whether to load the file |

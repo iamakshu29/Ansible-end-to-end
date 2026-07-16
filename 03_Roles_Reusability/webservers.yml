@@ -12,9 +12,9 @@
       tags: [import]
 
 - name: Play 3 - include_role
-  hosts: 
+  hosts: localhost
   vars: 
-        http_port: 9090
+    http_port: 9090
   tasks:
     - name: Calling webserver role using include_role
       
@@ -30,10 +30,14 @@
         name: "{{ item }}"
       loop: [webserver, common]
 
-- name: Play 5 - loop with import_role (expect error)
-  hosts: localhost
-  tasks:
-    - name: Looping over include_role with role names
-      import_role: 
-        name: "{{ item }}"
-      loop: [webserver, common]
+# - name: Play 5 - loop with import_role (expect error)
+#   hosts: localhost
+#   tasks:
+#     - name: Looping over include_role with role names
+#       import_role: 
+#         name: "{{ item }}"
+#       loop: [webserver, common]
+
+# ansible-playbook webservers.yml
+# ansible-playbook webservers.yml --tags include
+# ansible-playbook webservers.yml --tags import

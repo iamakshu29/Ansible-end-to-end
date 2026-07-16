@@ -170,9 +170,12 @@ This is a critical interview topic.
   - Play 2: call `webserver` role using `import_role` inside `tasks:`, pass `http_port: 9090` via `vars:`
   - Play 3: call `webserver` role using `include_role` inside `tasks:`
 - Add tags to the `import_role` call. Run with `--tags` — verify tags work on inner tasks.
-- Add tags to the `include_role` call. Run with `--tags` — verify tags do NOT reach inside the role. (This is the static vs dynamic difference from Phase 02.)
+  - Why: `import_role` is static — Ansible reads the role at parse time and copies the tag down to every inner task. So `--tags import` reaches all tasks inside the role even though they don't have the tag written in the role files.
+- Add tags to the `include_role` call. Run with `--tags` — verify tags do NOT reach inside the role.
+  - Why: `include_role` is dynamic — Ansible doesn't know what's inside at parse time, so the tag stays only on the include task itself. Inner tasks have no tag and get skipped. To filter inner tasks with `include_role`, you must put `tags:` on the tasks inside the role files directly.
 - Loop over `include_role` with a list of role names. Verify the loop works.
 - Try the same loop with `import_role`. Run. Read the error. Understand it.
+  - ERROR! You cannot use loops on 'import_role' statements. You should use 'include_role' instead.
 
 ---
 
