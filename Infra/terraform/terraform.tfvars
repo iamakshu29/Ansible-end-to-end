@@ -2,9 +2,6 @@ ssh_key = {
   ansible_controller = {
     key_path = "ansible_controller.pub"
   }
-  ansible_managed_node = {
-    key_path = "ansible_managed_node.pub"
-  }
 }
 
 instance = {
