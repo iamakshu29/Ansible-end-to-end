@@ -1,0 +1,3 @@
+​allow_duplicates: true
+​dependencies:
+  - role: common

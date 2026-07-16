@@ -5,3 +5,4 @@
     nginx_user: "myuser"
   roles:
     - webserver
+    - common # Exercise 3

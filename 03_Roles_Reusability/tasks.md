@@ -117,9 +117,10 @@ This is a critical interview topic.
 - In the webserver role: `defaults/main.yml` has `http_port: 80`, `vars/main.yml` has `nginx_user: "www-data"`
 - In your playbook `vars:` section, try to override BOTH: `{http_port: 8080, nginx_user: "myuser"}`
 - Add debug tasks to print both variables. Run it.
-- Which one changed? Which stayed as defined in the role? # Both changes
-- Now try overriding `nginx_user` via `group_vars/all.yml` instead. Which wins: group_vars or `vars/main.yml`?
+- Which one changed? Which stayed as defined in the role? # Only http_port changes
+- Now try overriding `nginx_user` via `group_vars/all.yml` instead. Which wins: group_vars or `vars/main.yml`? # `vars/main.yml` wins
 - Write down what you observed. This IS the `defaults` vs `vars` distinction in action.
+  - Observation: `vars/main.yml` wins over `group_vars`, `host_vars`, and playbook `vars:` — but NOT over extra vars (`-e` flag) or `set_fact`. Extra vars (`-e`) are the only thing that always beats everything.
 
 ---
 
@@ -127,7 +128,7 @@ This is a critical interview topic.
 
 - `dependencies:` — a list of other roles that must run before this role
 - Ansible runs all dependencies automatically, in order, before the role itself
-- `allow_duplicates: true` — by default a role dependency only runs once per play
+- `allow_duplicates: true` — but by default a role dependency only runs once per play
 - Use case: a `common` role (NTP, firewall, base config) that every app role needs
 
 **Exercise — Create a `common` role and make `webserver` depend on it:**
