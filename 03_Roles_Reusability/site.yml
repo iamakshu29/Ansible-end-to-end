@@ -5,4 +5,4 @@
     nginx_user: "myuser"
   roles:
     - webserver
-    - common # Exercise 3
+    - common # Exercise 3, it will run twice as its defined here and allow_duplcates: true

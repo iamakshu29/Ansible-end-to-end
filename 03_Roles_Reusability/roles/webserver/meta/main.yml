@@ -1,3 +1,2 @@
-​allow_duplicates: true
-​dependencies:
+dependencies:
   - role: common

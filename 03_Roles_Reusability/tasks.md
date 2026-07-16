@@ -135,9 +135,11 @@ This is a critical interview topic.
 
 - Create `roles/common/` with a single task that prints `"Running common setup"`
 - In `roles/webserver/meta/main.yml` add `dependencies: [{role: common}]`
+  - It will run once when defined here.
 - Run `site.yml`. Verify `common` runs BEFORE `webserver`, automatically, without you calling it in the playbook.
 - Now also add `common` explicitly in `site.yml` too. Run again.
 - Does `common` run twice? (It should NOT — that is `allow_duplicates: false`)
+  - `It will not run twice even explicitly added until allow_duplicates: true`
 - Add `allow_duplicates: true` to common's `meta/main.yml`. Run again. Does it run twice now?
 
 ---
