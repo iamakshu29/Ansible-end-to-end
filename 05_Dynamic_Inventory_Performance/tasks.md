@@ -63,12 +63,12 @@ Dynamic inventory: querying live infrastructure instead of maintaining static ho
 
 ### 2. Inventory plugins vs scripts
 
-| | Inventory Plugin | Inventory Script |
-|---|---|---|
-| Format | YAML config file | Python script |
-| Status | Modern, recommended | Old, still works |
+|                | Inventory Plugin               | Inventory Script        |
+| ----------------| --------------------------------| -------------------------|
+| Format         | YAML config file               | Python script           |
+| Status         | Modern, recommended            | Old, still works        |
 | Configured via | `.yml` file with `plugin:` key | Python file, executable |
-| Maintained | Actively by Ansible | Community/manual |
+| Maintained     | Actively by Ansible            | Community/manual        |
 
 Enable plugins in `ansible.cfg`:
 
