@@ -13,9 +13,9 @@ all:
     webservers:
       hosts:
         web01:
-          ansible_host: 
+          ansible_host: 172.31.20.51
 
     databases:
       hosts:
         db01:
-          ansible_host: 
+          ansible_host: 172.31.46.86
