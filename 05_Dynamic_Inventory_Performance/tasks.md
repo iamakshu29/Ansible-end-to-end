@@ -11,27 +11,89 @@ Static inventory breaks down at scale. This phase is what makes Ansible practica
 
 ---
 
-## What this phase covers
+## What "dynamic inventory" actually means
 
-Dynamic inventory: querying live infrastructure instead of maintaining static host files. Performance tuning: making Ansible run faster when you have many hosts. This is the gap between hobbyist Ansible and company-level Ansible.
+**Static inventory**: you write a YAML file listing every host. When a server is added or removed, you edit the file manually. At 200 servers this is painful. At 500 it is unmanageable.
+
+**Dynamic inventory**: Ansible runs a query at playbook-start and builds the host list from a live system — AWS, Azure, GCP, a CMDB, etc. You never touch a hosts file. The list is always current.
+
+This phase teaches you how dynamic inventory works, how to practice it without cloud access, and how to make Ansible faster once you have many hosts.
 
 ---
 
-## Folder structure to build as you go
+## Inventory Plugins vs Inventory Scripts — one clear explanation
+
+Both do the same job: give Ansible a list of hosts and their variables.
+
+**Inventory Script (old, avoid)**
+- A Python or bash script you write or download from somewhere
+- Ansible runs it as an executable and reads the JSON from stdout
+- You manage the script, its dependencies, and a separate config file
+- Still works but actively being replaced
+
+**Inventory Plugin (modern, use this always)**
+- A YAML config file with a `plugin:` key at the top
+- Ansible's built-in plugin code handles all the API calls for you
+- You only write the YAML config describing what to query and how to group results
+- Maintained by the Ansible team or collection authors
+- Version-controllable, readable, no code to manage
+
+**Rule: use plugins. Forget scripts exist unless you're maintaining old code.**
+
+The most important plugins:
+| Plugin | What it queries |
+|---|---|
+| `ansible.builtin.constructed` | sits on top of any other source, adds groups/vars |
+| `ansible.builtin.yaml` | reads YAML inventory files |
+| `amazon.aws.aws_ec2` | queries AWS EC2 API |
+| `azure.azcollection.azure_rm` | queries Azure Resource Manager |
+| `google.cloud.gcp_compute` | queries GCP Compute Engine |
+
+---
+
+## The constructed plugin — NOT legacy, very important
+
+The `ansible.builtin.constructed` plugin is one of the most used plugins in real deployments. Here is what it does:
+
+1. Reads hosts from another inventory source you point it at (static YAML, AWS EC2, anything)
+2. Lets you create groups dynamically based on variable values on those hosts
+3. Lets you auto-create groups from any variable's values automatically
+4. Lets you add computed variables to hosts
+
+**Why it matters in production**: AWS gives you EC2 instances with tags like `Environment=prod` and `Role=web`. The constructed plugin turns those tags into Ansible groups automatically. Your playbook then just targets `production` or `web_tier` without caring which specific IPs are in those groups right now.
+
+**Why you CAN practice it without cloud access**: The constructed plugin works on top of static inventory too. You define hosts with variables in static YAML, point constructed at that file, and it builds groups from the variables. The logic is identical. That is exactly what this phase does.
+
+---
+
+## Note on ansible.cfg format
+
+`ansible.cfg` always uses INI format — that is how Ansible reads it and it never changes. This is not the "old way", it is the only format for `ansible.cfg`.
+
+Your **inventory files** use YAML. Do not mix this up.
+
+```
+ansible.cfg      ← always INI format (that's correct)
+inventory/*.yml  ← YAML format for all inventory files
+```
+
+---
+
+## Folder structure for this phase
 
 ```
 05_Dynamic_Inventory_Performance/
   inventory/
     static/
-      inventory.yml
+      inventory.yml         ← YAML static inventory with host variables
     dynamic/
-      constructed.yml       <- constructed plugin config
-      aws_ec2.yml           <- AWS plugin config (if you have AWS access)
+      constructed.yml       ← constructed plugin — reads static, adds groups
+      aws_ec2.yml           ← AWS plugin config (only if you have AWS access)
     combined/
-      inventory.yml             <- static bastion hosts
-      constructed.yml       <- dynamic cloud hosts
+      inventory.yml         ← a bastion host (static)
+      constructed.yml       ← constructed reading static hosts
   ansible.cfg
-  01_static_problem.md      <- notes on why static inventory fails at scale
+  01_static_problem.md
   02_constructed_plugin.yml
   03_performance_tuning.yml
   04_async_tasks.yml
@@ -40,244 +102,207 @@ Dynamic inventory: querying live infrastructure instead of maintaining static ho
 
 ---
 
-## Concepts to Master
+## Exercise 1 — Static inventory with inline variables
+
+**Exercise — inventory/static/inventory.yml:**
+
+- Create 4 hosts in the `all` group: `web01`, `web02`, `db01`, `db02`
+- Each host needs `ansible_connection: local` — this tells Ansible to connect to your own machine instead of opening SSH. Ansible still treats each entry as a separate logical host, so all grouping, variables, and facts work exactly as with real remote hosts.
+- Give each host two inline variables: `env` (either `prod` or `staging`) and `role` (either `web` or `db`)
+  - `web01`: prod, web | `web02`: staging, web | `db01`: prod, db | `db02`: staging, db
+- Run: `ansible-inventory -i inventory/static/inventory.yml --graph`
+- Run: `ansible-inventory -i inventory/static/inventory.yml --list`
+- `--graph` shows the group tree. `--list` shows the full JSON — this JSON is the exact format any inventory plugin produces. All 4 hosts will be under `all` only, with no meaningful groups. This is what the constructed plugin fixes next.
 
 ---
 
-### 1. Why static inventory breaks down — understand the problem first
+## Exercise 2 — Constructed plugin
 
-- In cloud environments, hosts come and go constantly
-- Maintaining a `inventory.yml` by hand means it is always partially stale
-- Every new VM requires a manual file edit and a git commit
-- Dynamic inventory solves this: Ansible queries the cloud API at runtime and builds the current live host list every time it runs
+Key facts about `constructed` before writing the config:
 
-**Exercise — 01_static_problem.md:**
-
-- Open your existing static inventory from earlier phases
-- Imagine you have 200 EC2 instances and 10 new ones spin up today
-- Write out (in `01_static_problem.md`) the manual steps you would need to update static inventory correctly with the right groups
-- Write what could go wrong if the file is not updated
-- This is the problem dynamic inventory eliminates
-
----
-
-### 2. Inventory plugins vs scripts
-
-|                | Inventory Plugin               | Inventory Script        |
-| ----------------| --------------------------------| -------------------------|
-| Format         | YAML config file               | Python script           |
-| Status         | Modern, recommended            | Old, still works        |
-| Configured via | `.yml` file with `plugin:` key | Python file, executable |
-| Maintained     | Actively by Ansible            | Community/manual        |
-
-Enable plugins in `ansible.cfg`:
-
-```ini
-[inventory]
-enable_plugins = constructed, yaml, ini, aws_ec2
-```
-
-**Exercise — ansible.cfg:**
-
-- Create `ansible.cfg` in this phase folder with the above settings
-- Add `inventory = ./inventory/dynamic/` so Ansible looks there by default
-
----
-
-### 3. Constructed inventory plugin — create groups from any data source
-
-The constructed plugin is the easiest to practice without cloud access. It works ON TOP of your existing static inventory and creates new groups dynamically from variable values.
+- The config file starts with `plugin: ansible.builtin.constructed`
+- `sources:` — a list of inventory files or directories for the plugin to read hosts from
+- `groups:` — a dict of `group_name: "jinja2 condition"`. Any host where the condition is true joins that group.
+- `keyed_groups:` — auto-create groups from a variable's unique values. If `env` has values `prod` and `staging`, you get two groups automatically. Each entry needs `key:` (the variable), `prefix:`, and `separator:`.
+- `compose:` — add new computed variables to hosts using Jinja2 expressions
 
 **Exercise — inventory/dynamic/constructed.yml:**
 
-- Create `inventory/static/inventory.yml` with 4 hosts and inline variables:
+- Create the config file with `plugin: ansible.builtin.constructed`
+- Set `sources:` to point at `inventory/static/inventory.yml`
+- Use `groups:` to create: `production` (where `env == 'prod'`), `staging` (where `env == 'staging'`), `web_tier` (where `role == 'web'`), `db_tier` (where `role == 'db'`)
+- Use `keyed_groups:` to auto-create groups from the `env` variable (prefix `env`) and from the `role` variable (prefix `role`)
+- Use `compose:` to add a new variable `environment_label` that concatenates `env + '-' + role` on each host
+- Run: `ansible-inventory -i inventory/dynamic/constructed.yml --graph`
+- Compare the output to Exercise 1. Notice the new groups that didn't exist before.
+- Run: `ansible-inventory -i inventory/dynamic/constructed.yml --list`
+- Find `environment_label` in the output for each host under `hostvars`. Confirm its value.
+- This is the SAME mechanism used with AWS EC2 tags. Replace the static source with `amazon.aws.aws_ec2` and `keyed_groups` with tag keys — the rest is identical.
 
-```ini
-web01 env=prod role=web
-web02 env=staging role=web
-db01  env=prod role=db
-db02  env=staging role=db
-```
+**Exercise — 02_constructed_plugin.yml:**
 
-- Create `inventory/dynamic/constructed.yml` with `plugin: constructed`
-- Use `groups:` to create:
-  - `production_hosts` — any host where `env == "prod"`
-  - `staging_hosts` — any host where `env == "staging"`
-  - `web_tier` — any host where `role == "web"`
-- Use `keyed_groups:` to automatically create groups from the `env` variable values (e.g., `env=prod` creates a group called `env_prod` automatically)
-- Write `02_constructed_plugin.yml` that prints `group_names` for each host
-- Run it. Verify each host shows the correct dynamically-created groups
-- This is the SAME mechanism used with AWS EC2 tags in production — just without the cloud
-
----
-
-### 4. AWS EC2 inventory plugin — the most common in companies
-
-> If you have AWS access, do the full exercise. If not, read and understand the structure — the concepts are identical to the constructed plugin you just built.
-
-- Plugin name: `amazon.aws.aws_ec2`
-- Config file must end in `aws_ec2.yml` or `aws_ec2.yaml`
-- Key config options:
-  - `regions:` — which AWS regions to query
-  - `filters:` — e.g., `{instance-state-name: running}` — only running instances
-  - `hostnames:` — what to use as the Ansible hostname (private IP, public DNS, etc.)
-  - `keyed_groups:` — create groups from EC2 tag values
-  - `compose:` — add variables computed from instance attributes
-
-**Exercise (with AWS access):**
-
-- Install the collection: `ansible-galaxy collection install amazon.aws`
-- Create `inventory/dynamic/aws_ec2.yml` that queries your region, filters to running instances, and creates groups from `Environment` and `Role` tags
-- Run: `ansible-inventory -i inventory/dynamic/aws_ec2.yml --graph`
-- Read the group tree. See how your EC2 tags became Ansible groups.
-
-**Exercise (without AWS access):**
-
-- Run `ansible-inventory --list` on your static inventory
-- Read the JSON structure carefully — `_meta`, `hostvars`, group membership
-- This is the exact format a dynamic inventory plugin must output. Understanding it matters.
+- Write a playbook that runs against `all` with `gather_facts: false`
+- Print `inventory_hostname`, `group_names`, and `environment_label` for every host
+- Run it: `ansible-playbook -i inventory/dynamic/constructed.yml 02_constructed_plugin.yml`
+- Verify each host shows the correct groups and the computed label
 
 ---
 
-### 5. Combined inventory — mixing static and dynamic sources
+## Exercise 3 — Combined inventory directory
 
-- Put multiple inventory files or configs in one directory
-- Ansible merges ALL sources found in the directory
-- Groups and hosts from all sources are combined into one unified inventory
+Ansible merges ALL inventory sources found in a directory into one unified inventory.
 
 **Exercise — inventory/combined/:**
 
-- Create `inventory/combined/inventory.yml` with one static `bastion` host
-- Create `inventory/combined/constructed.yml` pointing to your 4 static test hosts
-- In `ansible.cfg` set `inventory = ./inventory/combined/`
-- Run `ansible-inventory --graph`
-- Verify both the static bastion host AND the constructed dynamic groups appear together in the same graph
+- Create `inventory/combined/inventory.yml` with one static host `bastion`, using `ansible_connection: local`, and give it `role: bastion`, `env: prod`
+- Create `inventory/combined/constructed.yml` pointing `sources:` at `inventory/static/inventory.yml` — add `production` and `staging` groups, and keyed groups from `role`
+- Run: `ansible-inventory -i inventory/combined/ --graph`
+- Verify all 5 hosts appear (4 from the constructed source + bastion from the static file) and all groups are merged
+- This is how real environments work: static file for fixed infra (bastion, jump hosts), dynamic plugin for cloud hosts — all in one directory
 
 ---
 
-### 6. Performance tuning
+## Exercise 4 — Performance tuning
+
+The `ansible.cfg` controls defaults. Test one setting at a time.
 
 **Exercise — 03_performance_tuning.yml:**
 
-Add each setting ONE AT A TIME to `ansible.cfg` and test the impact.
+**Step 1 — Forks:**
+- `forks` in `[defaults]` controls how many hosts Ansible talks to simultaneously (default: 5)
+- Write a playbook that prints `inventory_hostname` for all 4 hosts
+- Change `forks` to `1` in `ansible.cfg` and run — tasks run one host at a time (serial)
+- Change `forks` to `4` and run — all 4 hosts run in parallel
+- On localhost the time difference is tiny. On 100 real remote hosts, `forks=1` is 10+ minutes, `forks=20` is under a minute.
 
-**Step 1 — Increase forks:**
+**Step 2 — Pipelining:**
+- `pipelining = True` in `[ssh_connection]` — already set in `ansible.cfg`
+- Pipelining has no visible effect with `ansible_connection: local` — it only matters over SSH
+- What it does: normally Ansible opens a new SSH connection to copy the module script, then another to run it. Pipelining pipes the script directly over one connection.
+- Run the playbook. Note it works. Understand the setting even if the difference is invisible here.
 
-```ini
-[defaults]
-forks = 10
-```
-
-- Write a playbook that runs a simple task against all 4 test hosts
-- Run with `forks = 1`, then `forks = 4`. Time both runs. Observe the difference.
-
-**Step 2 — Enable pipelining:**
-
-```ini
-[ssh_connection]
-pipelining = True
-```
-
-- Run the same playbook. Note the time. (On localhost the difference is minimal — understand WHY it helps on real SSH hosts: it batches SSH operations into one connection instead of reconnecting per module.)
-
-**Step 3 — Disable fact gathering where not needed:**
-
-- Add `gather_facts: false` to a playbook that does not use any `ansible_facts`
-- Run with and without `gather_facts`. Time the difference.
-- On 100 hosts, skipping fact gathering saves several minutes.
+**Step 3 — Disable fact gathering:**
+- Add a second play to `03_performance_tuning.yml` with `gather_facts: false`
+- Run it. Notice the "Gathering Facts" step is skipped entirely
+- On 100 hosts, fact gathering alone can take several minutes. Turning it off when facts are not needed is the single biggest speed win.
 
 **Step 4 — gather_subset:**
-
-- Instead of `gather_facts: false`, use: `gather_subset: ['!all', '!min', 'network']`
-- This collects ONLY network facts instead of everything
-- Run it. Print `ansible_facts`. Notice how much less data there is.
+- Instead of disabling facts entirely, use `gather_subset` to collect only what you need
+- Available subsets include: `network`, `hardware`, `virtual`, `facter`, `ohai`
+- Use `!all` and `!min` to turn off all defaults, then add only `network`
+- Add a play that does this and prints `ansible_facts` — compare how little data comes back vs a full gather
+- Notice that `ansible_facts['distribution']` is now undefined because you only collected network facts
 
 ---
 
-### 7. Async tasks — run long tasks without blocking
+## Exercise 5 — Async tasks
 
-- `async: 300` — the task is allowed up to 300 seconds to complete
-- `poll: 10` — check task status every 10 seconds
-- `poll: 0` — fire and forget: start the task and immediately move on
-- `async_status` module — check the result of a `poll: 0` task later
+**Exercise — 04_async_tasks.yml — build step by step:**
 
-**Exercise — 04_async_tasks.yml:**
+**Step 1 — blocking task:**
+- Write a task that runs `sleep 5` using the `command` module with `delegate_to: localhost`
+- Run it. The play blocks for the full 5 seconds before moving on.
 
-- Write a task: `command: sleep 10`. Run it normally. The play blocks 10 seconds.
-- Add `async: 30, poll: 5`. Run. Ansible polls every 5 seconds and reports when done.
-- Change to `poll: 0`. Register the result with `register: async_result`. The task starts and the play immediately moves on.
-- Add a second task using `async_status` module to check the result:
-  - `jid: "{{ async_result.ansible_job_id }}"`
-  - `until` the status is `finished`, `retries: 10`, `delay: 3`
-- Run it. Understand the fire-and-forget pattern.
+**Step 2 — async with polling:**
+- Add `async: 30` and `poll: 3` to the same task
+- `async: 30` — allow the task up to 30 seconds to complete
+- `poll: 3` — check task status every 3 seconds
+- Run it. Ansible starts the task, checks in every 3 seconds, and waits for completion. You see the polling output.
+
+**Step 3 — fire and forget (poll: 0):**
+- Change `poll:` to `0` and `register:` the result into a variable
+- `poll: 0` means: start the task and immediately move on — do not wait
+- Add a `debug` task after it with a message like "doing other work while task runs"
+- Add another task using the `async_status` module to check back later:
+  - use the `jid:` from your registered variable to identify the job
+  - use `until:` to keep checking until `finished` is true
+  - set `retries:` and `delay:` appropriately
+- Run it. Verify the play moves past the slow task immediately and only waits at the `async_status` check
 
 ---
 
 ## Break stuff on purpose
 
-- In `constructed.yml` — write a `groups:` condition with a Jinja2 syntax error. Run `ansible-inventory --list`. Read the error.
-- Set `forks = 200`. Run a play against 10 hosts. Watch system resources (open Task Manager or `top` while it runs). Understand the risk.
-- Set `gather_facts: false` and then try to use `ansible_facts['distribution']` in a task. Run it. Read the error. This is why you cannot disable facts blindly.
-- Use `poll: 0` to fire an async task. Do NOT add an `async_status` check. The play exits `succeeded`. Is the background task done? How would you know? This is the trap.
+- In `constructed.yml` — write a `groups:` condition with a Jinja2 syntax error (e.g., `"env =="` with nothing after it). Run `ansible-inventory --list`. Read the error message.
+- Set `gather_facts: false` and then use `ansible_facts['distribution']` in a task. Run it. Ansible fails at runtime, not at parse time. This is why you cannot blindly disable facts.
+- Use `poll: 0` to start an async task but do NOT add an `async_status` check. The playbook exits "succeeded". The background task is still running. How would you know if it failed? This is the trap of fire-and-forget.
+- In `constructed.yml` — write a `groups:` condition referencing a variable that no host has (e.g., `nonexistent_var == 'value'`). Run it. Notice Ansible does not error — it silently skips hosts where the variable is undefined. This is important to know.
+
+---
+
+## AWS EC2 plugin — understand the structure (reference, no AWS needed)
+
+The `amazon.aws.aws_ec2` plugin is the most common in real companies. Its config file (`aws_ec2.yml`) follows the exact same structure as `constructed.yml`:
+- `plugin: amazon.aws.aws_ec2`
+- `regions:` — which AWS regions to query
+- `filters:` — e.g., only running instances
+- `hostnames:` — which attribute to use as the Ansible hostname (private IP, public DNS, etc.)
+- `keyed_groups:` — create groups from EC2 tag keys (same as you used in the constructed exercise)
+- `compose:` — add computed variables (same as you used in the constructed exercise)
+
+The only difference from what you built is the source of hosts: AWS API instead of a static file. The `keyed_groups` and `compose` keys behave identically.
+
+**If you have AWS access:** install with `ansible-galaxy collection install amazon.aws`, write `inventory/dynamic/aws_ec2.yml`, and run `ansible-inventory -i inventory/dynamic/aws_ec2.yml --graph`
+
+**If you don't:** you already understand the mechanism. The constructed exercise gave you the same mental model. You are not missing anything conceptual.
 
 ---
 
 ## Mini Project — Inventory-Driven Environment Report
 
-Build a combined static + constructed inventory setup and a playbook that uses it.
+Build a combined static + constructed setup and a playbook that reports on it.
 
 **Requirements:**
 
-- `inventory/inventory.yml` with 6 hosts across two groups: `webservers`, `databases`
-- Each host has inline variables: `env` (prod or staging) and `tier` (web or db)
-- `inventory/constructed.yml` that creates:
-  - `production` group — all hosts where `env == "prod"`
-  - `staging` group — all hosts where `env == "staging"`
-  - Keyed groups from the `tier` variable automatically
-- Playbook that:
-  - Runs against all hosts
-  - Prints for each host: `inventory_hostname`, which groups it belongs to, and whether it is in the `production` group
-  - Uses `gather_subset` to collect only network and virtual facts (not everything)
-  - Has one task with `async: 20, poll: 5` to simulate a slow operation
-  - Prints total memory from facts for hosts where it is available
-- `ansible.cfg` with: `forks = 4`, `pipelining = True`, smart fact caching enabled
+- `inventory/combined/inventory.yml` with 6 hosts — `web01` through `web03` and `db01` through `db03`
+  - All with `ansible_connection: local`
+  - `web*` hosts: `env` alternates prod/staging, `role: web`
+  - `db*` hosts: `env` alternates prod/staging, `role: db`
+  - One extra `bastion` host with `role: bastion`, `env: prod`
+- `inventory/combined/constructed.yml` that creates:
+  - `production` group — `env == 'prod'`
+  - `staging` group — `env == 'staging'`
+  - Keyed groups from `role` automatically
+  - `compose` that adds `environment_label` = `env + '-' + role`
+- `project_inventory_report.yml` playbook that:
+  - Runs against `all`
+  - Prints `inventory_hostname`, `group_names`, `environment_label` for every host
+  - Uses `gather_subset: ['!all', '!min', 'network']` (not full facts)
+  - Has one async task (`sleep 5`, `poll: 0`) with a later `async_status` check
+  - Has a second play that runs ONLY against `production` group and prints a message
+- `ansible.cfg` with `forks = 4`, pipelining enabled, inventory pointing to `./inventory/combined/`
 
 **Stretch goals:**
-
-- Add a bastion host to the inventory that is only in the static `inventory.yml` (not in any dynamic group)
-- Use `compose:` in `constructed.yml` to add a new variable `environment_label` combining `env` and `tier` (e.g., `"prod-web"`, `"staging-db"`)
-- Add a second play that only runs against the `production` group and prints a warning
-
-**Files to create:**
-
-- `05_Dynamic_Inventory_Performance/inventory/inventory.yml`
-- `05_Dynamic_Inventory_Performance/inventory/constructed.yml`
-- `05_Dynamic_Inventory_Performance/ansible.cfg`
-- `05_Dynamic_Inventory_Performance/project_inventory_report.yml`
+- Add `compose` to set `ansible_user` differently per `env` value
+- Run `ansible-inventory --graph` and capture the group tree — verify every host is in the right groups before running the playbook
 
 ---
 
-## Vocabulary to know cold
+## Vocabulary to know
 
 | Term | Definition |
-|------|-----------|
-| dynamic inventory | inventory built by querying a live system at runtime |
-| inventory plugin | a YAML-configured component that queries an external source |
-| `forks` | number of parallel SSH connections Ansible opens simultaneously |
-| pipelining | SSH optimization that batches module operations into fewer connections |
-| fact caching | storing gathered facts to disk or Redis to skip re-gathering |
-| `async` | run a task in the background without blocking the play |
-| `poll` | how often in seconds to check the status of an async task |
-| `keyed_groups` | auto-create Ansible groups from attribute or tag values |
-| `constructed` | an inventory plugin that layers groups/vars on top of another source |
+|---|---|
+| dynamic inventory | host list built by querying a live system at runtime, not from a static file |
+| inventory plugin | a YAML config file that tells Ansible's built-in code how to query a source |
+| inventory script | old Python executable approach — outputs JSON, not recommended |
+| `constructed` plugin | built-in plugin that layers groups and variables on top of any other inventory source |
+| `groups:` | key in constructed plugin — create a named group based on a Jinja2 condition |
+| `keyed_groups:` | auto-create groups from all unique values of a variable or tag |
+| `compose:` | add computed variables to hosts using Jinja2 expressions |
+| `forks` | number of hosts Ansible works on in parallel |
+| `pipelining` | SSH optimization — batches module operations into fewer connections |
+| `gather_subset` | collect only specific categories of facts instead of everything |
+| `async` | run a task in the background, do not block the play |
+| `poll` | how often in seconds to check async task status; `0` = fire and forget |
+| `async_status` | module to check the result of a `poll: 0` task |
 
 ---
 
 ## Resources
 
-- [Inventory Plugins](https://docs.ansible.com/ansible/latest/plugins/inventory.html)
-- [Constructed Inventory Plugin](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/constructed_inventory.html)
-- [AWS EC2 Inventory Plugin](https://docs.ansible.com/ansible/latest/collections/amazon/aws/aws_ec2_inventory.html)
+- [Ansible Inventory Plugins](https://docs.ansible.com/ansible/latest/plugins/inventory.html)
+- [constructed plugin docs](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/constructed_inventory.html)
 - [Working with Dynamic Inventory](https://docs.ansible.com/ansible/latest/inventory_guide/intro_dynamic_inventory.html)
+- [AWS EC2 Inventory Plugin](https://docs.ansible.com/ansible/latest/collections/amazon/aws/aws_ec2_inventory.html)
 - [Async Actions and Polling](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_async.html)
 - [Performance Tips](https://docs.ansible.com/ansible/latest/tips_tricks/ansible_tips_tricks.html)

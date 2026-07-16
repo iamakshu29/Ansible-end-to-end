@@ -3,9 +3,9 @@
 ## Before you start — be comfortable with:
 
 - Everything from Phase 01 and Phase 02
-- `import_role` vs `include_role` (static vs dynamic — covered in Phase 02)
+- The static vs dynamic concept from Phase 02 (`import_tasks` vs `include_tasks`) — the same idea applies to `import_role` vs `include_role` which you'll use in this phase
 - What `group_vars` and `host_vars` are and how they relate to variable precedence
-- What a handler is and how `defaults/` differs from `vars/` conceptually
+- What a handler is (from Phase 02) — roles have their own handlers directory
 
 Do not start this phase if Phase 02 concepts still feel unclear. Roles are where everything from the first two phases comes together.
 

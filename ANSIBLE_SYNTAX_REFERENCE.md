@@ -168,6 +168,7 @@ tasks:
 ```
 
 > **Rules to remember:**
+>
 > - A handler runs **once per play, at the end** — even if notified by 10 tasks
 > - It only fires when the notifying task reports `changed` — not on `ok`
 > - `meta: flush_handlers` — forces pending handlers to run immediately at that point
@@ -387,12 +388,12 @@ tasks:
 
 > No `hosts:`, `tasks:`, `become:`, or `gather_facts:` keys in a task file — those belong in a playbook, not a task file.
 
-| | `import_tasks` | `include_tasks` |
-|---|---|---|
-| Resolved | parse time | runtime |
-| Tags pass through to inner tasks | yes | no |
-| Loop over the include | no | yes |
-| Variable as filename | only play-level vars | yes (any variable) |
+|                                  | `import_tasks`     | `include_tasks`  |
+| -------------------------------- | -------------------- | ------------------ |
+| Resolved                         | parse time           | runtime            |
+| Tags pass through to inner tasks | yes                  | no                 |
+| Loop over the include            | no                   | yes                |
+| Variable as filename             | only play-level vars | yes (any variable) |
 
 ---
 
