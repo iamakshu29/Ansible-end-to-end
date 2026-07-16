@@ -1,0 +1,39 @@
+- name: Play 1 - roles syntax
+  hosts: localhost
+  roles:
+    - webserver
+
+- name: Play 2 - import_role
+  hosts: localhost
+  tasks:
+    - name: Calling webserver role using import_role
+      import_role: 
+        name: webserver
+      tags: [import]
+
+- name: Play 3 - include_role
+  hosts: 
+  vars: 
+        http_port: 9090
+  tasks:
+    - name: Calling webserver role using include_role
+      
+      include_role: 
+        name: webserver
+      tags: [include]
+
+- name: Play 4 - loop with include_role
+  hosts: localhost
+  tasks:
+    - name: Looping over include_role with role names
+      include_role: 
+        name: "{{ item }}"
+      loop: [webserver, common]
+
+- name: Play 5 - loop with import_role (expect error)
+  hosts: localhost
+  tasks:
+    - name: Looping over include_role with role names
+      import_role: 
+        name: "{{ item }}"
+      loop: [webserver, common]

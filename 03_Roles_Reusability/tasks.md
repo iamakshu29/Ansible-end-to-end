@@ -151,12 +151,24 @@ This is a critical interview topic.
 - `include_role:` — dynamic inline, supports loops and runtime variable-based decisions
 - Pass variables to a role using `vars:` when calling `import_role` or `include_role`
 
+> **Syntax**: both `import_role` and `include_role` need a `name:` key — they are not shorthand like `command: sleep 5`:
+>
+> ```yaml
+> - import_role:
+>     name: webserver
+>
+> - include_role:
+>     name: webserver
+> ```
+
 **Exercise — Call the same role three ways:**
 
+> **Three separate plays** — do not put all three in one play. When `roles:` and `tasks:` exist in the same play, `roles:` always runs first, so you lose the ability to compare them independently. Each play should demonstrate only one calling style.
+
 - Write `webservers.yml` with three separate plays:
-  - Play 1: call `webserver` role using `roles:` list syntax
-  - Play 2: call `webserver` role using `import_role` with `vars: {http_port: 9090}`
-  - Play 3: call `webserver` role using `include_role`
+  - Play 1: call `webserver` role using `roles:` list syntax only — no `tasks:` key in this play
+  - Play 2: call `webserver` role using `import_role` inside `tasks:`, pass `http_port: 9090` via `vars:`
+  - Play 3: call `webserver` role using `include_role` inside `tasks:`
 - Add tags to the `import_role` call. Run with `--tags` — verify tags work on inner tasks.
 - Add tags to the `include_role` call. Run with `--tags` — verify tags do NOT reach inside the role. (This is the static vs dynamic difference from Phase 02.)
 - Loop over `include_role` with a list of role names. Verify the loop works.
