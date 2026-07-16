@@ -17,3 +17,9 @@
     - name: Task 4
       debug: 
         msg: "Task 4 Completed by {{ ansible_hostname }}"
+
+# Make a task fail on one host. With ​serial: 1​, what happens to the others?
+# Simply failed at first and stopped 
+
+# Add ​any_errors_fatal: true​. Run. What changes?
+# Add another line after failed task and shows No more hosts left.

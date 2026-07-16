@@ -19,3 +19,7 @@
 
 # Only loads secrets_prod.yml → only needs prod vault password
 # ansible-playbook -i inventory/inventory.yml 02_vault_ids.yml --vault-id prod@prompt -e env=prod
+
+# echo "dummy" > ~/.vault_dev
+# echo "dummy" > ~/.vault_prod
+# chmod 600 ~/.vault_dev ~/.vault_prod

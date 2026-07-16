@@ -19,4 +19,14 @@
       debug:
         var: result
 
+    - name: Break Stuff on Purpose
+      command: uptim
+      register: result_2
+      ignore_errors: true
+    
+    - name: Getting result from Break Stuff
+      debug:
+        msg: "The uptime is {{ result_2 }}"
+
+
 # ansible-playbook 03_error_handling.yml
