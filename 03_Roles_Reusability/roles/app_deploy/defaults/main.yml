@@ -1,0 +1,4 @@
+# Project vars:
+app_version: "1.0.0"
+deploy_path: "/opt/app"
+script_version: "none"

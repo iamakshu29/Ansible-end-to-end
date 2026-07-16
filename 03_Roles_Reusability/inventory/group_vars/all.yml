@@ -1,1 +1,2 @@
 nginx_user: "admin"
+http_port: 8080

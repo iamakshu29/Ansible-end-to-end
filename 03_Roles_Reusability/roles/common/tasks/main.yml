@@ -1,3 +1,2 @@
 - name: "Common Role task"
-  debug:
-    msg: "Running common setup"
+  include_tasks: common_task_project.yml

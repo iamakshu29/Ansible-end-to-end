@@ -1,0 +1,5 @@
+- name: Deploying APP
+  debug:
+    msg: 
+      - "Deploying version {{ app_version }} to {{ deploy_path }}"
+      - "Looping Version {{ script_version }}"

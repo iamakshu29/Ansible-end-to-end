@@ -1,1 +1,5 @@
 http_port: 80
+
+
+# Project vars:
+document_root: "/var/www/html"

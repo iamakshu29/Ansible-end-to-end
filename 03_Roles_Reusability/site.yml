@@ -3,6 +3,15 @@
   vars:
     http_port: 8080
     nginx_user: "myuser"
+    
   roles:
-    - webserver
     - common # Exercise 3, it will run twice as its defined here and allow_duplcates: true
+    - webserver
+  tasks:
+    - name: Adding app_deploy role
+      include_role:
+        name: app_deploy
+      vars:
+        app_version: "2.1.0" # For project
+        script_version: "{{ item }}"
+      loop: ["1.2","2.3","3.3"]

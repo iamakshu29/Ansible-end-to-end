@@ -1,1 +1,4 @@
 nginx_user: "www-data"
+
+# Project vars:
+nginx_worker_processes: "auto"

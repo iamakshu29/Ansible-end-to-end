@@ -1,3 +1,4 @@
+
 # Phase 03 — Roles & Reusability
 
 ## Before you start — be comfortable with:
@@ -150,6 +151,16 @@ This is a critical interview topic.
 - `import_role:` — static inline within `tasks:`, full tag support, no loops
 - `include_role:` — dynamic inline, supports loops and runtime variable-based decisions
 - Pass variables to a role using `vars:` when calling `import_role` or `include_role`
+- Table for when to use direct role as list or include_role in tasks.
+
+|                              | `roles:` list | `include_role` in tasks |
+| ---------------------------- | --------------- | ------------------------- |
+| Need a loop                  | ❌ no           | ✅ yes                    |
+| Pass different vars per call | limited         | ✅ yes, per task          |
+| Simple one-time call         | ✅ clean syntax | works but verbose         |
+| Runs before`tasks:`        | always          | no, runs in order         |
+
+**Rule**: use `roles:` for straightforward calls with no loop and no dynamic vars. Switch to `include_role` when you need a loop, need to pass different vars to each call, or need the role to run at a specific point between other tasks.
 
 > **Syntax**: both `import_role` and `include_role` need a `name:` key — they are not shorthand like `command: sleep 5`:
 >
@@ -221,7 +232,7 @@ roles_path = ./roles
 ## Break stuff on purpose
 
 - Delete `tasks/main.yml` from your webserver role. Run the playbook. What error?
-- Put a variable in `vars/main.yml` with the same name as one in `group_vars/all.yml`. Run. Observe which wins. Swap it to `defaults/main.yml`. Run again. Which wins now?
+- Put a variable in `vars/main.yml` with the same name as one in `group_vars/all.yml`. Run. Observe which wins. Swap it to `defaults/main.yml`. Run again. Which wins now? # `vars/main.yml` wins
 - Add a circular dependency: `webserver` depends on `common`, `common` depends on `webserver`. Run it. What does Ansible say?
 - Call `include_role` with a variable role name and leave the variable undefined. Run. Read the error. Then define it. Run again.
 
@@ -239,7 +250,7 @@ Build a project that simulates deploying a two-tier app using multiple roles.
   - Tasks: print `"Setting timezone to {{ timezone }}"`, print `"Configuring NTP: {{ ntp_server }}"`
 - **Role 2: `webserver`** — depends on `common`
 
-  - `defaults`: `http_port: 80`, `document_root: "/var/www/html"`
+  - `defaults`: `http_port: 90`, `document_root: "/var/www/html"`
   - `vars`: `nginx_worker_processes: "auto"` (this should NOT be overridable externally)
   - `tasks/install.yml`: print `"Installing nginx"`
   - `tasks/configure.yml`: print `"Configuring nginx on port {{ http_port }}"`, notify handler, render `nginx.conf.j2` to `/tmp/`
@@ -258,7 +269,7 @@ Build a project that simulates deploying a two-tier app using multiple roles.
 
 - Add `requirements.yml` that installs one real role from Galaxy alongside your custom roles
 - Add a task in `webserver` that uses `files/` to copy `index.html` to `/tmp/`
-- Call `app_deploy` in a loop for versions `["1.0.0", "2.0.0", "3.0.0"]`
+- Call `script_version` in a loop for versions `["1.2","2.3","3.3"]`
 
 **Files to create:**
 

@@ -1,0 +1,4 @@
+- name: Copy File
+  copy:
+    src: index.html
+    dest: /tmp/

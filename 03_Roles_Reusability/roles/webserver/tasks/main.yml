@@ -3,3 +3,6 @@
 
 - name: Import configure tasks
   import_tasks: configure.yml
+
+- name: Import copy File tasks
+  import_tasks: copy.yml

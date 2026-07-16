@@ -1,0 +1,5 @@
+- name: Run Common Tasks for Project
+  debug:
+    msg: 
+      - "Setting timezone to {{ timezone }}"
+      - "Configuring NTP: {{ ntp_server }}"

@@ -3,3 +3,10 @@
     msg: "Configuring nginx worker user: {{ nginx_user }}"
   tags:
     - configure
+
+- name: "CONFIGURE | Configure service nginx"
+  debug:
+    msg: "Configuring nginx on port {{ http_port }}"
+  tags:
+    - configure
+  notify: nginx config changed

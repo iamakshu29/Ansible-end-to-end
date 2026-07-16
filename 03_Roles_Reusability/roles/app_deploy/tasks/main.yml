@@ -1,0 +1,2 @@
+- name: Import deploy tasks
+  import_tasks: deploy.yml
