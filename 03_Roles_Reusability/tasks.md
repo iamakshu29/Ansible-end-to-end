@@ -62,31 +62,34 @@ Build this by hand as you work through exercises. Do not create the whole struct
 
 ### 1. Role directory structure — every directory has a purpose
 
-| Directory | Purpose |
-|-----------|---------|
-| `tasks/main.yml` | entry point — Ansible runs this when the role is called |
-| `tasks/install.yml` | convention: split big task files by concern, `import_tasks` from main |
-| `handlers/main.yml` | handlers scoped to this role only |
-| `templates/` | Jinja2 `.j2` template files |
-| `files/` | static files copied as-is (no templating) |
-| `defaults/main.yml` | lowest-precedence variables — overridable public interface |
-| `vars/main.yml` | high-precedence internal constants — not meant to be overridden |
-| `meta/main.yml` | role metadata: author, Galaxy info, dependency list |
-| `library/` | custom modules scoped to this role only |
+| Directory             | Purpose                                                                |
+| --------------------- | ---------------------------------------------------------------------- |
+| `tasks/main.yml`    | entry point — Ansible runs this when the role is called               |
+| `tasks/install.yml` | convention: split big task files by concern,`import_tasks` from main |
+| `handlers/main.yml` | handlers scoped to this role only                                      |
+| `templates/`        | Jinja2`.j2` template files                                           |
+| `files/`            | static files copied as-is (no templating)                              |
+| `defaults/main.yml` | lowest-precedence variables — overridable public interface            |
+| `vars/main.yml`     | high-precedence internal constants — not meant to be overridden       |
+| `meta/main.yml`     | role metadata: author, Galaxy info, dependency list                    |
+| `library/`          | custom modules scoped to this role only                                |
 
 Only `tasks/` is required. All other directories are optional. Ansible automatically reads `main.yml` from each directory — you do not import it manually.
 
 **Exercise — Create the webserver role:**
 
+> **Important — scope of role variables**: Variables defined in `defaults/main.yml` and `vars/main.yml` are only available **inside that role's own tasks**. They do not exist in playbook-level `tasks:` blocks unless the role has been called. `site.yml` should only call the role — the tasks that USE the variables live inside the role files.
+
 - Create the full directory structure for the `webserver` role manually (no shortcuts)
 - `tasks/main.yml`: use `import_tasks` to call `install.yml` and `configure.yml`
-  - `tasks/install.yml`: a debug task that prints `"Installing nginx"`
-  - `tasks/configure.yml`: a debug task that prints `"Configuring nginx"`
+  - `tasks/install.yml`: a debug task that prints `"Installing nginx on port {{ http_port }}"`
+  - `tasks/configure.yml`: a debug task that prints `"Configuring nginx — worker user: {{ nginx_user }}"`
 - `handlers/main.yml`: a handler that prints `"Nginx restarted"`
 - `defaults/main.yml`: set `http_port: 80` and `server_name: "localhost"`
 - `vars/main.yml`: set `nginx_user: "www-data"`
-- Write `site.yml` that calls the webserver role against localhost
-- Run it. Verify all tasks run and the role structure works.
+- Write `site.yml` that calls the webserver roles using localhost
+  - `site.yml`: a single play targeting `localhost` with only a `roles:` key calling `webserver` — no inline `tasks:` here
+  - Run it. Verify both debug messages print with the correct values from `defaults/` and `vars/`
 
 ---
 
@@ -95,12 +98,14 @@ Only `tasks/` is required. All other directories are optional. Ansible automatic
 This is a critical interview topic.
 
 **`defaults/main.yml`:**
+
 - Lowest variable precedence of everything in Ansible
 - The role's overridable public interface
 - Think of it as: *"I set a sane default, but you are expected to override this"*
 - Any inventory variable, `group_var`, `host_var`, or playbook `vars:` overrides defaults
 
 **`vars/main.yml`:**
+
 - Very high variable precedence — higher than `group_vars` and `host_vars`
 - Internal constants the role needs to function
 - Think of it as: *"This is how this role works — do not change this from outside"*
@@ -112,7 +117,7 @@ This is a critical interview topic.
 - In the webserver role: `defaults/main.yml` has `http_port: 80`, `vars/main.yml` has `nginx_user: "www-data"`
 - In your playbook `vars:` section, try to override BOTH: `{http_port: 8080, nginx_user: "myuser"}`
 - Add debug tasks to print both variables. Run it.
-- Which one changed? Which stayed as defined in the role?
+- Which one changed? Which stayed as defined in the role? # Both changes
 - Now try overriding `nginx_user` via `group_vars/all.yml` instead. Which wins: group_vars or `vars/main.yml`?
 - Write down what you observed. This IS the `defaults` vs `vars` distinction in action.
 
@@ -211,21 +216,21 @@ Build a project that simulates deploying a two-tier app using multiple roles.
 **Requirements:**
 
 - **Role 1: `common`** — runs on all hosts, sets up base configuration
+
   - `defaults`: `ntp_server: "pool.ntp.org"`, `timezone: "UTC"`
   - Tasks: print `"Setting timezone to {{ timezone }}"`, print `"Configuring NTP: {{ ntp_server }}"`
-
 - **Role 2: `webserver`** — depends on `common`
+
   - `defaults`: `http_port: 80`, `document_root: "/var/www/html"`
   - `vars`: `nginx_worker_processes: "auto"` (this should NOT be overridable externally)
   - `tasks/install.yml`: print `"Installing nginx"`
   - `tasks/configure.yml`: print `"Configuring nginx on port {{ http_port }}"`, notify handler, render `nginx.conf.j2` to `/tmp/`
   - `handlers`: `"nginx config changed"` handler
   - `templates/nginx.conf.j2`: a minimal fake nginx.conf using `http_port` and `document_root`
-
 - **Role 3: `app_deploy`** — depends on `common`
+
   - `defaults`: `app_version: "1.0.0"`, `deploy_path: "/opt/app"`
   - Tasks: print `"Deploying version {{ app_version }} to {{ deploy_path }}"`
-
 - `site.yml` calls all three roles
 - Override `http_port` to `8080` via `group_vars` for the webservers group
 - Override `app_version` to `"2.1.0"` via a `vars:` block when calling `app_deploy`
@@ -249,16 +254,16 @@ Build a project that simulates deploying a two-tier app using multiple roles.
 
 ## Vocabulary to know cold
 
-| Term | Definition |
-|------|-----------|
-| role | a self-contained unit of automation with a standard directory structure |
-| `defaults` | lowest-precedence variables — the role's overridable public interface |
-| `vars` | high-precedence variables — the role's internal constants |
-| `meta` | role metadata: author, Galaxy info, and dependency list |
-| dependency | a role that Ansible runs automatically before the current role |
-| Galaxy | Ansible's community hub for sharing and downloading roles and collections |
+| Term             | Definition                                                                     |
+| ---------------- | ------------------------------------------------------------------------------ |
+| role             | a self-contained unit of automation with a standard directory structure        |
+| `defaults`     | lowest-precedence variables — the role's overridable public interface         |
+| `vars`         | high-precedence variables — the role's internal constants                     |
+| `meta`         | role metadata: author, Galaxy info, and dependency list                        |
+| dependency       | a role that Ansible runs automatically before the current role                 |
+| Galaxy           | Ansible's community hub for sharing and downloading roles and collections      |
 | `requirements` | `requirements.yml` — a pinned list of external roles/collections to install |
-| `roles_path` | `ansible.cfg` setting that tells Ansible where to look for roles |
+| `roles_path`   | `ansible.cfg` setting that tells Ansible where to look for roles             |
 
 ---
 

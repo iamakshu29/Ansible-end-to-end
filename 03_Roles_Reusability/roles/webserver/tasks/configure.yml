@@ -1,5 +1,5 @@
 - name: "CONFIGURE | Configure service nginx"
   debug:
-    msg: "Configuring service nginx"
+    msg: "Configuring nginx worker user: {{ nginx_user }}"
   tags:
     - configure

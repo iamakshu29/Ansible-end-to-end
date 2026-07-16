@@ -1,11 +1,4 @@
-- name: playbook
+- name: Deploy webserver
   hosts: localhost
-  vars:
-    http_port: 8080
-    nginx_user: "myuser"
-  tasks:
-    - name: Print http_user and nginx_user 
-      debug:
-        msg:
-          - "{{ http_port }}"
-          - "{{ nginx_user }}"
+  roles:
+    - webserver

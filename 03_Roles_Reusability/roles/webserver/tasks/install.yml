@@ -1,5 +1,5 @@
 - name: "INSTALL | Install package nginx"
   debug:
-    msg: "Installing nginx"
+    msg: "Installing nginx on port {{ http_port }}"
   tags:
     - install
