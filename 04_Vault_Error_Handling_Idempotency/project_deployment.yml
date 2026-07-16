@@ -1,0 +1,55 @@
+- name: PRoject
+  hosts: all
+  serial: 50%
+  max_fail_percentage: 25
+  vars:
+    filename:
+      - file_a
+      - file_b
+      - file_c
+    app:
+      - cloud: AWS
+        type: Containerized
+      - cloud: Azure
+        type: K8s
+      - cloud: GCP
+        type: VMs
+  tasks:
+    - name: BLOCK Start
+      block:
+        - name: Simulating File Tasks
+          file:
+            path: /tmp/project
+            state: directory
+        
+        - name: Simulating Copy Tasks
+          copy:
+            src: ansible.cfg
+            dest: /tmp/project/
+        
+        - name: Simulating Template Tasks
+          template:
+            src: templates/sample_template.j2
+            dest: /tmp/project/{{ item }}.conf
+          loop: "{{ filename }}"
+      rescue:
+        - name: Failed task
+          debug:
+            msg: "Triggering Rollback for tasks {{ ansible_failed_task.name }}"
+      always:
+        - name: Post Deployment task
+          debug:
+            msg: Deploy attempt logged
+
+    # changed_when — reports changed only when output contains "updated"
+    - name: Check deploy status
+      command: echo "Service updated successfully"
+      register: deploy_result
+      changed_when: "'updated' in deploy_result.stdout"
+
+    # Rollback task — skipped on normal runs, only runs with --tags rollback
+    - name: Rollback — remove deployed files
+      file:
+        path: /tmp/project
+        state: absent
+      tags: [rollback, never]
