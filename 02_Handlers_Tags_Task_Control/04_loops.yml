@@ -77,6 +77,17 @@
       retries: 5
       delay: 3
 
+# ---------------------------------------------------------------
+# WHAT TO TRY:
+#   1. Run as-is — Cases 1–3 run, until keeps retrying until timeout
+#      While retrying: touch /tmp/ready.txt → Ansible detects it and succeeds
+#   2. Remove loop_control on Case 3 — output shows full dict instead of clean label
+#   3. Change loop: "{{ app }}" to a static list inline:
+#      loop: [{cloud: AWS, type: Containerized}, {cloud: Azure, type: K8s}]
+#   4. Add pause: 1 under loop_control — adds a 1-second delay between iterations
+# ---------------------------------------------------------------
 
+## Commands
+# ansible-playbook -i inventory/inventory.yml 04_loops.yml
+# ansible-playbook 04_loops.yml    # runs on implicit localhost (no inventory)
 
-    

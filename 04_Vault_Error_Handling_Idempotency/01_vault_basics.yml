@@ -1,15 +1,24 @@
 - name: Vault Tutorial
   hosts: localhost
-  become: true
-  vars:
+  # group_vars/all/vault.yml is encrypted — Ansible auto-loads it when --ask-vault-pass is provided
+  # vars.yml references vault vars: db_password: "{{ vault_db_password }}"
+  # api_key is encrypted inline via encrypt_string, pasted directly into vars.yml
   tasks:
     - name: Print app_name, db_password and api_key
       debug:
-        msg: 
-          - "App Name is {{ app_name }}"
-          - "DB Password is {{ db_password }}"
-          - "API Keys is {{ api_key }}"
+        msg:
+          - "App Name: {{ app_name }}"
+          - "DB Password: {{ db_password }}"           # decrypted from vault_db_password
+          - "API Key: {{ api_key }}"                   # decrypted from !vault inline block
 
-# ansible-vault encrypt inventory/group_vars/all/vault.yml
-# ansible-vault encrypt_string 'anotherpassword' --name 'api_key'
-# ansible-playbook 01_vault_basics.yml -i inventory/inventory.yml --ask-vault-pass
+# Step-by-step commands
+# 1. Encrypt the vault file:       ansible-vault encrypt inventory/group_vars/all/vault.yml
+# 2. View encrypted file:          ansible-vault view inventory/group_vars/all/vault.yml
+# 3. Edit encrypted file:          ansible-vault edit inventory/group_vars/all/vault.yml
+# 4. Generate inline string:       ansible-vault encrypt_string 'anotherpassword' --name 'api_key'
+#    Paste the output block into inventory/group_vars/all/vars.yml directly
+# 5. Run with vault password:      ansible-playbook 01_vault_basics.yml -i inventory/inventory.yml --ask-vault-pass
+# 6. Run WITHOUT vault password:   ansible-playbook 01_vault_basics.yml -i inventory/inventory.yml
+#    → AnsibleError: Attempting to decrypt but no vault secrets found
+# 7. Rekey (change password):      ansible-vault rekey inventory/group_vars/all/vault.yml
+# 8. Use password file (CI/CD):    ansible-playbook 01_vault_basics.yml -i inventory/inventory.yml --vault-password-file ~/.vault_pass

@@ -3,41 +3,47 @@
   roles:
     - webserver
 
-- name: Play 2 - import_role
+- name: Play 2 - import_role (static, tags pass to inner tasks)
   hosts: localhost
   tasks:
-    - name: Calling webserver role using import_role
-      import_role: 
+    - name: Calling webserver role using import_role — pass http_port via task vars
+      import_role:
         name: webserver
+      vars:
+        http_port: 9090           # overrides defaults/main.yml — proof: install task prints 9090
       tags: [import]
+      # Tags pass through to every inner task because import_role is resolved at parse time
+      # --tags import reaches install.yml, configure.yml tasks inside the role
 
-- name: Play 3 - include_role
+- name: Play 3 - include_role (dynamic, tags do NOT reach inner tasks)
   hosts: localhost
-  vars: 
-    http_port: 9090
   tasks:
     - name: Calling webserver role using include_role
-      
-      include_role: 
+      include_role:
         name: webserver
       tags: [include]
+      # Tags stay on this task only — inner tasks have no tag, so --tags include skips them
+      # To filter inner tasks of include_role, put tags: inside the role files directly
 
 - name: Play 4 - loop with include_role
   hosts: localhost
   tasks:
     - name: Looping over include_role with role names
-      include_role: 
+      include_role:
         name: "{{ item }}"
       loop: [webserver, common]
 
 # - name: Play 5 - loop with import_role (expect error)
 #   hosts: localhost
 #   tasks:
-#     - name: Looping over include_role with role names
-#       import_role: 
+#     - name: This fails — import_role does not support loops
+#       import_role:
 #         name: "{{ item }}"
 #       loop: [webserver, common]
+#   # ERROR! You cannot use loops on 'import_role' statements. Use 'include_role' instead.
 
-# ansible-playbook webservers.yml
-# ansible-playbook webservers.yml --tags include
-# ansible-playbook webservers.yml --tags import
+# ansible-playbook webservers.yml -i inventory/inventory.yml
+# ansible-playbook webservers.yml -i inventory/inventory.yml --tags import    # tags reach inner tasks
+# ansible-playbook webservers.yml -i inventory/inventory.yml --tags include   # tags stay on include task only
+# ansible-playbook webservers.yml -i inventory/inventory.yml --tags install   # only install-tagged tasks
+# ansible-playbook webservers.yml -i inventory/inventory.yml --list-tasks     # preview task list

@@ -1,32 +1,42 @@
 - name: Error Handling
   hosts: localhost
-  any_errors_fatal: true
+  any_errors_fatal: true    # if any host fails (would matter across multiple hosts), abort all
   tasks:
-    - name: Run a command
+    # --- ignore_errors: continue even when task fails ---
+    - name: Run /bin/false — always fails, but ignored
       command: /bin/false
       ignore_errors: true
+      # Without ignore_errors: play stops here. With it: play continues.
 
-    - name: Run a command
+    # --- changed_when: false — read-only task, never report changed ---
+    - name: Echo a string — always ok, never changed
       command: echo "Checking..."
       changed_when: false
+      # Re-run 10 times: always reports ok, never changed.
+      # Use for: commands that only READ state (stat, check, query).
 
-    - name: Run a command
+    # --- failed_when: override what counts as failure ---
+    - name: Exit code 2 — acceptable exit code, not a failure
       command: bash -c "exit 2"
       register: result
       failed_when: result.rc not in [0, 2]
-    
-    - name: Get output of command
+      # Exit code 2 is treated as success. Exit code 1 or 3+ would be a real failure.
+
+    - name: Print result of exit-2 command
       debug:
         var: result
+        # result.rc = 2, result.failed = false (because failed_when was satisfied)
 
-    - name: Break Stuff on Purpose - 3rd
-      command: uptim
+    # --- Break stuff on purpose: calling non-existent command ---
+    - name: Call a non-existent command to get error output
+      command: uptim                    # typo: 'uptim' instead of 'uptime'
       register: result_2
       ignore_errors: true
-    
-    - name: Getting result from Break Stuff
+
+    - name: Print result from broken command (rc != 0, stderr shows the error)
       debug:
-        msg: "The uptime is {{ result_2 }}"
+        msg: "Result: {{ result_2 }}"
+        # result_2.rc = 2, result_2.stderr = 'bash: uptim: command not found'
 
-
-# ansible-playbook 03_error_handling.yml
+# ansible-playbook 03_error_handling.yml -i inventory/inventory.yml
+# ansible-playbook 03_error_handling.yml -i inventory/inventory.yml -v    # verbose: see full output

@@ -1,17 +1,25 @@
 - name: Deploy webserver
   hosts: localhost
   vars:
-    http_port: 8080
-    nginx_user: "myuser"
-    
+    http_port: 8080       # overrides defaults/main.yml (http_port: 80) — play vars beat role defaults
+    nginx_user: "myuser"  # does NOT override vars/main.yml (nginx_user: www-data) — vars/ beats play vars
+    # Precedence proof: http_port prints 8080, nginx_user still prints www-data
+
   roles:
-    - common # Exercise 3, it will run twice as its defined here and allow_duplcates: true
-    - webserver
+    - common    # allow_duplicates: true in common/meta — so common runs again from app_deploy dep too
+    - webserver # webserver/meta depends on common → common runs a second time here
+
   tasks:
-    - name: Adding app_deploy role
+    - name: "Deploy app — include_role with loop (stretch goal: loop over script versions)"
       include_role:
         name: app_deploy
       vars:
-        app_version: "2.1.0" # For project
-        script_version: "{{ item }}"
-      loop: ["1.2","2.3","3.3"]
+        app_version: "2.1.0"          # overrides defaults/main.yml (app_version: 1.0.0)
+        script_version: "{{ item }}"   # loop variable passed into the role each iteration
+      loop: ["1.2", "2.3", "3.3"]
+
+# Run commands
+# ansible-playbook site.yml -i inventory/inventory.yml
+# ansible-playbook site.yml -i inventory/inventory.yml --tags install
+# ansible-playbook site.yml -i inventory/inventory.yml --tags configure
+# ansible-playbook site.yml -i inventory/inventory.yml --list-tasks

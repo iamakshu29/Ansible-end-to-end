@@ -1,19 +1,34 @@
 - name: Idempotency
   hosts: localhost
   tasks:
-    - name: Show Changed everytime
+    # --- Non-idempotent: appends every run, file grows each time ---
+    - name: NON-IDEMPOTENT — appends a line every run
       shell: echo "hello" >> /tmp/idempotency_test.txt
+      # Run twice: cat /tmp/idempotency_test.txt — two lines. That's broken.
 
-    - name: Make above task Idempotent
+    # --- Idempotent replacement: lineinfile checks before writing ---
+    - name: IDEMPOTENT — lineinfile ensures the line exists exactly once
       lineinfile:
         path: /tmp/idempotency_test_1.txt
         line: "hello"
         state: present
+        create: true    # creates file if it does not exist (safe first run)
+      # Run twice: second run reports ok, not changed. File always has exactly one line.
 
-    - name: Show Changed everytime
+    # --- Non-idempotent: mkdir fails on second run (dir already exists) ---
+    - name: NON-IDEMPOTENT — mkdir fails if directory already exists
       shell: mkdir /tmp/testdir
+      ignore_errors: true   # suppress failure so play continues — demonstrates the problem
+      # Second run: rc=1, "mkdir: cannot create directory '/tmp/testdir': File exists"
 
-    - name: Make above task Idempotent 
-      file: 
+    # --- Idempotent replacement: file module checks state first ---
+    - name: IDEMPOTENT — file module creates dir only when missing
+      file:
         path: /tmp/testdir_1
         state: directory
+      # Run twice: second run reports ok. Module checked state=directory already satisfied.
+
+# ansible-playbook 04_idempotency.yml -i inventory/inventory.yml
+# Run it twice. Compare changed/ok counts — second run should have zero changed.
+# cat /tmp/idempotency_test.txt   → 2+ lines (broken)
+# cat /tmp/idempotency_test_1.txt → always 1 line (idempotent)

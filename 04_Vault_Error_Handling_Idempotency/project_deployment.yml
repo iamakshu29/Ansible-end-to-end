@@ -1,7 +1,9 @@
-- name: PRoject
+- name: Project — Secrets-Aware Deployment Playbook
   hosts: all
-  serial: 50%
-  max_fail_percentage: 25
+  serial: "50%"           # deploy to half the hosts at a time (rolling deploy)
+  max_fail_percentage: 25 # abort if more than 25% of hosts fail
+  # Secrets loaded from: inventory/group_vars/all/vault.yml (AES-256 encrypted)
+  # Plain refs in:        inventory/group_vars/all/vars.yml (db_password: "{{ vault_db_password }}")
   vars:
     filename:
       - file_a
@@ -15,44 +17,58 @@
       - cloud: GCP
         type: VMs
   tasks:
-    - name: BLOCK Start
+    - name: BLOCK — deployment steps (block/rescue/always pattern)
       block:
-        - name: Simulating File Tasks
+        - name: Create deployment working directory
           file:
             path: /tmp/project
             state: directory
-        
-        - name: Simulating Copy Tasks
+
+        - name: Copy ansible.cfg as a config artifact
           copy:
             src: ansible.cfg
             dest: /tmp/project/
-        
-        - name: Simulating Template Tasks
+
+        - name: Render config files from template
           template:
             src: template/sample_template.j2
             dest: /tmp/project/{{ item }}.conf
           loop: "{{ filename }}"
-      rescue:
-        - name: Failed task
-          debug:
-            msg: "Triggering Rollback for tasks {{ ansible_failed_task.name }}"
-      always:
-        - name: Post Deployment task
-          debug:
-            msg: Deploy attempt logged
 
-    # changed_when — reports changed only when output contains "updated"
-    - name: Check deploy status
+      rescue:
+        - name: Handle failure — log failed task and trigger rollback
+          debug:
+            msg: "Deployment failed at: '{{ ansible_failed_task.name }}' — Triggering Rollback"
+            # ansible_failed_task.name  — name of the task that failed
+            # ansible_failed_result     — full result dict from the failed task
+
+      always:
+        - name: Post-deployment — log attempt regardless of outcome
+          debug:
+            msg: "Deployment attempt logged"   # runs on success AND failure (like 'finally')
+
+    # --- changed_when: only report changed when output contains "updated" ---
+    - name: Check deploy status — changed only when service was actually updated
       command: echo "Service updated successfully"
       register: deploy_result
       changed_when: "'updated' in deploy_result.stdout"
+      # Second run with same output: still changed (stdout always contains "updated")
+      # In real use: check a file hash or version string that only changes on real updates
 
-    # Rollback task — skipped on normal runs, only runs with --tags rollback
+    # --- Rollback task — skipped on normal runs, only runs with --tags rollback ---
     - name: Rollback — remove deployed files
       file:
         path: /tmp/project
         state: absent
       tags: [rollback, never]
+      # 'never' tag: skipped unless explicitly requested with --tags rollback
 
-# ansible-vault encrypt vault.yml
-# ansible-playbook -i inventory/inventory_05.yml project_deployment.yml --ask-vault-pass
+# ansible-vault encrypt inventory/group_vars/all/vault.yml
+# Normal run (with vault decryption):
+#   ansible-playbook -i inventory/inventory_05.yml project_deployment.yml --ask-vault-pass
+# Run using password file (CI/CD):
+#   ansible-playbook -i inventory/inventory_05.yml project_deployment.yml --vault-password-file ~/.vault_pass
+# Trigger rollback only:
+#   ansible-playbook -i inventory/inventory_05.yml project_deployment.yml --ask-vault-pass --tags rollback
+# Dry run (check mode — no real changes):
+#   ansible-playbook -i inventory/inventory_05.yml project_deployment.yml --ask-vault-pass --check

@@ -56,4 +56,18 @@
         msg: "At least one condition is TRUE — undef_var is undefined (FALSE) but system='{{ ansible_facts['system'] }}' is Linux (TRUE) → task runs"
       when: undef_var is defined or ansible_facts['system'] == "Linux"
 
-    
+# ---------------------------------------------------------------
+# WHAT TO TRY:
+#   1. Run as-is — Case 1 Linux task runs, Windows task skips; Case 3 AND both true; Case 4 OR saves the run
+#   2. Comment out def_var in vars: — Case 3 (AND) and Case 2 (IS DEFINED) both skip
+#   3. Uncomment def_var and run on a Windows host — Case 3 AND fails (system != Linux)
+#   4. Run with -e "def_var=from_cli" — extra vars activates Case 2 and Case 3
+#   5. Add a list-based AND: when: [def_var is defined, ansible_facts['system'] == 'Linux']
+#      Same result as 'and' keyword — each item in the list must be true
+# ---------------------------------------------------------------
+
+## Commands
+# ansible-playbook 03_conditionals.yml
+# ansible-playbook 03_conditionals.yml -e "def_var=from_cli"
+# ansible-playbook 03_conditionals.yml -v    # verbose — see which conditions evaluated true/false
+

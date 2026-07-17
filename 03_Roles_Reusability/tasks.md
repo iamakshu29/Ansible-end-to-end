@@ -248,22 +248,28 @@ Build a project that simulates deploying a two-tier app using multiple roles.
 
   - `defaults`: `ntp_server: "pool.ntp.org"`, `timezone: "UTC"`
   - Tasks: print `"Setting timezone to {{ timezone }}"`, print `"Configuring NTP: {{ ntp_server }}"`
+  - `meta/main.yml`: `allow_duplicates: true` (so common runs once per role that depends on it)
 - **Role 2: `webserver`** — depends on `common`
 
-  - `defaults`: `http_port: 90`, `document_root: "/var/www/html"`
-  - `vars`: `nginx_worker_processes: "auto"` (this should NOT be overridable externally)
-  - `tasks/install.yml`: print `"Installing nginx"`
-  - `tasks/configure.yml`: print `"Configuring nginx on port {{ http_port }}"`, notify handler, render `nginx.conf.j2` to `/tmp/`
-  - `handlers`: `"nginx config changed"` handler
-  - `templates/nginx.conf.j2`: a minimal fake nginx.conf using `http_port` and `document_root`
+  - `defaults`: `http_port: 80`, `document_root: "/var/www/html"`
+  - `vars`: `nginx_user: "www-data"`, `nginx_worker_processes: "auto"` (NOT overridable externally)
+  - `tasks/main.yml`: `import_tasks` for install.yml, configure.yml, copy.yml
+  - `tasks/install.yml`: print `"Installing nginx on port {{ http_port }}"` — tagged `install`
+  - `tasks/configure.yml`: print `"Configuring nginx worker user: {{ nginx_user }}"` and `"Configuring nginx on port {{ http_port }}"` — tagged `configure`, second task notifies handler
+  - `tasks/copy.yml`: copy `files/index.html` to `/tmp/`
+  - `handlers/main.yml`: `"Restarting nginx Service"` debug handler + `"nginx config changed"` template handler
+  - `templates/nginx.conf.j2`: minimal fake nginx.conf using `http_port`
 - **Role 3: `app_deploy`** — depends on `common`
 
-  - `defaults`: `app_version: "1.0.0"`, `deploy_path: "/opt/app"`
-  - Tasks: print `"Deploying version {{ app_version }} to {{ deploy_path }}"`
-- `site.yml` calls all three roles
-- Override `http_port` to `8080` via `group_vars` for the webservers group
-- Override `app_version` to `"2.1.0"` via a `vars:` block when calling `app_deploy`
-- Verify through debug output that both overrides actually took effect
+  - `defaults`: `app_version: "1.0.0"`, `deploy_path: "/opt/app"`, `script_version: "none"`
+  - `tasks/deploy.yml`: print `"Deploying version {{ app_version }} to {{ deploy_path }}"` and `"Looping Version {{ script_version }}"`
+- **`site.yml`** — calls all three roles in one combined play:
+
+  > Note: `roles:` + `tasks:` in the same play is valid — `roles:` always runs first, then `tasks:`. This works for the project because the order is intentional: common → webserver, then app_deploy via include_role with a loop.
+
+  - `vars:` section proves precedence: `http_port: 8080` (overrides defaults) and `nginx_user: "myuser"` (does NOT override vars/main.yml — nginx_user still prints `www-data`)
+  - `roles:` calls `common` explicitly (runs extra time due to `allow_duplicates: true`) + `webserver`
+  - `tasks:` calls `app_deploy` via `include_role` with loop over `["1.2", "2.3", "3.3"]` and passes `app_version: "2.1.0"`
 
 **Stretch goals:**
 
@@ -271,13 +277,46 @@ Build a project that simulates deploying a two-tier app using multiple roles.
 - Add a task in `webserver` that uses `files/` to copy `index.html` to `/tmp/`
 - Call `script_version` in a loop for versions `["1.2","2.3","3.3"]`
 
-**Files to create:**
+**Files created:**
 
-- `03_Roles_Reusability/roles/common/`
-- `03_Roles_Reusability/roles/webserver/`
-- `03_Roles_Reusability/roles/app_deploy/`
-- `03_Roles_Reusability/site.yml`
-- `03_Roles_Reusability/requirements.yml`
+- `03_Roles_Reusability/roles/common/` — tasks, defaults, meta
+- `03_Roles_Reusability/roles/webserver/` — tasks, handlers, templates, files, defaults, vars, meta
+- `03_Roles_Reusability/roles/app_deploy/` — tasks, defaults, meta
+- `03_Roles_Reusability/site.yml` — combined play (roles: + tasks:)
+- `03_Roles_Reusability/webservers.yml` — 4 plays demonstrating all 3 calling styles + loop
+- `03_Roles_Reusability/inventory/inventory.yml` — localhost in all + webservers groups
+- `03_Roles_Reusability/inventory/group_vars/all.yml` — `nginx_user: "admin"`, `http_port: 8080`
+- `03_Roles_Reusability/inventory/group_vars/webservers.yml` — `http_port: 8080`
+- `03_Roles_Reusability/requirements.yml` — `geerlingguy.git` version 3.0.0
+- `03_Roles_Reusability/ansible.cfg` — `roles_path = ./roles`
+
+**Run commands:**
+
+```bash
+# Run full project (all three roles)
+ansible-playbook site.yml -i inventory/inventory.yml
+
+# Run with tag filter (webserver install tasks only)
+ansible-playbook site.yml -i inventory/inventory.yml --tags install
+
+# Run with tag filter (webserver configure tasks only)
+ansible-playbook site.yml -i inventory/inventory.yml --tags configure
+
+# Run webservers.yml — demonstrates all three calling styles
+ansible-playbook webservers.yml -i inventory/inventory.yml
+
+# Demonstrate import_role tag pass-through (tags reach inner tasks)
+ansible-playbook webservers.yml -i inventory/inventory.yml --tags import
+
+# Demonstrate include_role tag isolation (tags stay on include task only)
+ansible-playbook webservers.yml -i inventory/inventory.yml --tags include
+
+# List all tasks without running
+ansible-playbook site.yml -i inventory/inventory.yml --list-tasks
+
+# Install Galaxy requirements
+ansible-galaxy install -r requirements.yml --roles-path ./roles
+```
 
 ---
 

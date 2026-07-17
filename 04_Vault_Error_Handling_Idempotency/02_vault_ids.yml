@@ -1,25 +1,37 @@
-- name: Vault IDs Tutorial
+- name: Vault IDs Tutorial — different passwords per environment
   hosts: localhost
+  # vars/secrets_dev.yml  encrypted with vault ID 'dev'  (password: devpass)
+  # vars/secrets_prod.yml encrypted with vault ID 'prod' (password: prodpass)
+  # ansible.cfg sets: vault_identity_list = dev@~/.vault_dev, prod@~/.vault_prod
   tasks:
-    - name: Load dev secrets
+    - name: Load dev secrets — only when env=dev
       include_vars: vars/secrets_dev.yml
       when: env == "dev"
 
-    - name: Load prod secrets
+    - name: Load prod secrets — only when env=prod
       include_vars: vars/secrets_prod.yml
       when: env == "prod"
 
-    - name: Print environment db url
+    - name: Print environment DB URL
       debug:
         msg: "DB URL: {{ environment_db_url }}"
 
+# Setup: create password files (use real passwords in practice)
+# echo "devpass"  > ~/.vault_dev  && chmod 600 ~/.vault_dev
+# echo "prodpass" > ~/.vault_prod && chmod 600 ~/.vault_prod
 
-# Only loads dev_secrets.yml → only needs dev vault password
-# ansible-playbook -i inventory/inventory.yml 02_vault_ids.yml --vault-id dev@prompt -e env=dev
+# Encrypt each file with its vault ID:
+# ansible-vault encrypt --vault-id dev@prompt  vars/secrets_dev.yml
+# ansible-vault encrypt --vault-id prod@prompt vars/secrets_prod.yml
 
-# Only loads secrets_prod.yml → only needs prod vault password
+# Run with only dev password  → decrypts dev_secrets, prod_secrets fails
+# ansible-playbook -i inventory/inventory.yml 02_vault_ids.yml --vault-id dev@prompt  -e env=dev
+
+# Run with only prod password → decrypts prod_secrets, dev_secrets fails
 # ansible-playbook -i inventory/inventory.yml 02_vault_ids.yml --vault-id prod@prompt -e env=prod
 
-# echo "dummy" > ~/.vault_dev
-# echo "dummy" > ~/.vault_prod
-# chmod 600 ~/.vault_dev ~/.vault_prod
+# Run with BOTH passwords     → both files decrypt successfully
+# ansible-playbook -i inventory/inventory.yml 02_vault_ids.yml --vault-id dev@prompt --vault-id prod@prompt -e env=dev
+
+# Use password files (CI/CD, no prompts):
+# ansible-playbook -i inventory/inventory.yml 02_vault_ids.yml --vault-id dev@~/.vault_dev --vault-id prod@~/.vault_prod -e env=prod

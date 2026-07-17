@@ -457,3 +457,259 @@ ansible all -m ping -i inventory.yml                     # ping all hosts
 ansible all -m setup -i inventory.yml                    # gather facts for all hosts
 ansible web01 -m shell -a "uptime" -i inventory.yml      # run a shell command on one host
 ```
+
+---
+
+## Roles
+
+### Role directory structure
+
+```
+roles/
+  webserver/
+    tasks/
+      main.yml        ← entry point — Ansible runs this automatically
+      install.yml     ← convention: split by concern, import_tasks from main.yml
+      configure.yml
+    handlers/
+      main.yml        ← handlers scoped to this role only
+    templates/
+      nginx.conf.j2
+    files/
+      index.html      ← static files copied as-is (no templating)
+    defaults/
+      main.yml        ← LOWEST precedence — overridable public interface
+    vars/
+      main.yml        ← HIGH precedence — internal constants, NOT meant to be overridden
+    meta/
+      main.yml        ← role metadata: author, Galaxy info, dependency list
+```
+
+> Only `tasks/` is required. All other directories are optional.
+> Ansible automatically reads `main.yml` from each directory — no manual import needed.
+
+### defaults vs vars — the critical distinction
+
+| Directory          | Precedence | Purpose                                               | Overridable from outside? |
+| ------------------ | ---------- | ----------------------------------------------------- | ------------------------- |
+| `defaults/main.yml` | lowest     | Public API — sane defaults the caller can override  | Yes — by anything         |
+| `vars/main.yml`     | very high  | Private constants the role needs to function          | Only by `-e` (extra vars) |
+
+```
+defaults/ ← group_vars beats this → host_vars beats this → play vars beats this
+vars/     ← beats group_vars, host_vars, play vars — only -e beats it
+```
+
+### Calling roles — three ways
+
+```yaml
+# 1. roles: list — static, runs before any tasks: in the same play
+- name: Play using roles list
+  hosts: webservers
+  roles:
+    - common
+    - webserver               # shorthand
+    - role: app_deploy        # explicit form — allows passing vars
+      vars:
+        app_version: "2.0.0"
+
+# 2. import_role — static inline in tasks:, full tag support, no loops
+- name: Play using import_role
+  hosts: webservers
+  tasks:
+    - name: Deploy webserver role
+      import_role:
+        name: webserver
+      vars:
+        http_port: 9090       # overrides defaults/main.yml
+      tags: [deploy]
+      # Tags pass through to ALL inner tasks because import_role is resolved at parse time
+
+# 3. include_role — dynamic inline in tasks:, supports loops and runtime decisions
+- name: Play using include_role
+  hosts: webservers
+  tasks:
+    - name: Deploy app for each version
+      include_role:
+        name: app_deploy
+      vars:
+        app_version: "{{ item }}"
+      loop: ["1.0", "2.0", "3.0"]
+      # Tags do NOT pass through to inner tasks (dynamic — resolved at runtime)
+      # To filter inner tasks: put tags: directly on tasks inside the role files
+```
+
+|                              | `roles:` list | `import_role`   | `include_role`        |
+| ---------------------------- | ------------- | --------------- | --------------------- |
+| Tags pass to inner tasks     | yes           | yes             | no                    |
+| Supports `loop:`             | no            | no              | yes                   |
+| Runs before `tasks:`         | always        | no, in order    | no, in order          |
+| Variable role name           | no            | no              | yes                   |
+| Use when                     | simple call   | inline + tags   | loop or dynamic vars  |
+
+### Role dependencies — meta/main.yml
+
+```yaml
+# roles/webserver/meta/main.yml
+dependencies:
+  - role: common              # common runs BEFORE webserver automatically
+  - role: security_baseline
+    vars:
+      firewall_enabled: true
+
+allow_duplicates: false       # default — a dependency runs only once per play
+# allow_duplicates: true      # set this to allow the same role to run multiple times
+```
+
+### ansible.cfg — roles_path
+
+```ini
+[defaults]
+roles_path = ./roles           # single path
+# roles_path = ./roles:~/.ansible/roles   # colon-separated list (Linux/macOS)
+```
+
+### requirements.yml — Galaxy role install
+
+```yaml
+# requirements.yml
+- src: geerlingguy.nginx
+  version: "3.1.4"
+
+- src: geerlingguy.git
+  version: "3.0.0"
+```
+
+```bash
+ansible-galaxy install -r requirements.yml                  # install to default roles path
+ansible-galaxy install -r requirements.yml --roles-path ./roles   # install to local roles/
+ansible-galaxy install geerlingguy.nginx                    # install single role
+```
+
+---
+
+## Ansible Vault
+
+```bash
+# Encrypt / decrypt files
+ansible-vault encrypt  group_vars/all/vault.yml        # encrypt entire file (AES-256)
+ansible-vault decrypt  group_vars/all/vault.yml        # decrypt to disk (careful with Git)
+ansible-vault view     group_vars/all/vault.yml        # view without decrypting to disk
+ansible-vault edit     group_vars/all/vault.yml        # open in $EDITOR
+ansible-vault rekey    group_vars/all/vault.yml        # re-encrypt with a new password
+
+# Encrypt a single string — paste the !vault | block directly into a vars file
+ansible-vault encrypt_string 'mysecretvalue' --name 'api_key'
+
+# Run a playbook with an encrypted file
+ansible-playbook site.yml --ask-vault-pass             # prompt for password
+ansible-playbook site.yml --vault-password-file ~/.vault_pass   # read from file (CI/CD)
+```
+
+### Best-practice pattern — vars.yml + vault.yml
+
+```
+group_vars/all/
+  vars.yml    ← non-sensitive: db_password: "{{ vault_db_password }}"
+  vault.yml   ← encrypted:    vault_db_password: "supersecret123"
+```
+
+> Keep `vars.yml` in plain text so you can `grep` variable names.
+> Keep `vault.yml` encrypted so values are never in Git in plain text.
+> NEVER `git add` a plain-text vault file.
+
+### Vault IDs — multiple passwords per environment
+
+```bash
+# Encrypt each environment's secrets with a different vault ID
+ansible-vault encrypt --vault-id dev@prompt  vars/secrets_dev.yml
+ansible-vault encrypt --vault-id prod@prompt vars/secrets_prod.yml
+
+# Run with one environment's password only
+ansible-playbook site.yml --vault-id dev@prompt
+ansible-playbook site.yml --vault-id dev@~/.vault_dev   # file-based (no prompt)
+
+# Run with multiple vault IDs at once
+ansible-playbook site.yml --vault-id dev@~/.vault_dev --vault-id prod@~/.vault_prod
+```
+
+```ini
+# ansible.cfg — set default vault identity list
+[defaults]
+vault_identity_list = dev@~/.vault_dev, prod@~/.vault_prod
+```
+
+---
+
+## Error Handling
+
+```yaml
+tasks:
+  # ignore_errors — continue even if this task fails
+  - name: Task that may fail
+    command: /bin/false
+    ignore_errors: true        # play continues; use sparingly — masks real problems
+
+  # changed_when — override Ansible's built-in change detection
+  - name: Read-only check — never report changed
+    command: cat /etc/hostname
+    changed_when: false        # always reports ok, never changed
+
+  - name: Custom change detection — changed only when output contains "updated"
+    command: /opt/scripts/deploy.sh
+    register: result
+    changed_when: "'updated' in result.stdout"
+
+  # failed_when — override what counts as failure
+  - name: Accept exit code 2 as success
+    command: bash -c "exit 2"
+    register: result
+    failed_when: result.rc not in [0, 2]   # exit 2 is OK; exit 1 or 3+ is a failure
+
+# Play-level error settings
+- name: Play with error controls
+  hosts: all
+  any_errors_fatal: true      # if any host fails, abort play for ALL hosts immediately
+  max_fail_percentage: 20     # allow up to 20% of hosts to fail before aborting
+  tasks: []
+```
+
+---
+
+## Strategies — serial, linear, free
+
+```yaml
+# serial — batch hosts for rolling deploys
+- name: Rolling deploy — one at a time
+  hosts: all
+  serial: 1               # one host per batch (safest)
+  tasks: []
+
+- name: Rolling deploy — 25% at a time
+  hosts: all
+  serial: "25%"           # percentage of total host count
+  tasks: []
+
+- name: Ramp-up deploy — canary first, then rest
+  hosts: all
+  serial: [1, "50%"]      # batch 1: 1 host; batch 2: 50% of remainder; etc.
+  tasks: []
+
+# strategy: free — each host runs as fast as it can, independently
+- name: Parallel play
+  hosts: all
+  strategy: free
+  tasks: []
+
+# strategy: linear (default) — all hosts execute each task in lockstep
+- name: Lockstep play (default)
+  hosts: all
+  strategy: linear
+  tasks: []
+```
+
+```bash
+# Strategies do not change run commands — they change execution ORDER
+ansible-playbook site.yml -i inventory/inventory.yml
+ansible-playbook site.yml -i inventory/inventory.yml --limit web01   # only one host
+```

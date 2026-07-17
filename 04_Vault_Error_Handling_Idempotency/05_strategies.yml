@@ -1,25 +1,61 @@
-- name: Running Strategies
+# --- serial: 1 — one host at a time (safest, slowest) ---
+- name: Strategy — serial 1 (one host per batch)
   hosts: all
   serial: 1
   tasks:
     - name: Task 1
-      debug: 
-        msg: "Task 1 Completed by {{ ansible_hostname }}"
-    
+      debug:
+        msg: "Task 1 completed by {{ inventory_hostname }}"
+
     - name: Task 2
-      debug: 
-        msg: "Task 2 Completed by {{ ansible_hostname }}"
+      debug:
+        msg: "Task 2 completed by {{ inventory_hostname }}"
 
     - name: Task 3
-      debug: 
-        msg: "Task 3 Completed by {{ ansible_hostname }}"
+      debug:
+        msg: "Task 3 completed by {{ inventory_hostname }}"
 
     - name: Task 4
-      debug: 
-        msg: "Task 4 Completed by {{ ansible_hostname }}"
+      debug:
+        msg: "Task 4 completed by {{ inventory_hostname }}"
 
-# Make a task fail on one host. With ​serial: 1​, what happens to the others?
-# Simply failed at first and stopped 
+# Observation: localhost_01 completes all 4 tasks before localhost_02 starts
 
-# Add ​any_errors_fatal: true​. Run. What changes?
-# Add another line after failed task and shows No more hosts left.
+# --- serial: 2 — two hosts at a time ---
+- name: Strategy — serial 2 (two hosts per batch)
+  hosts: all
+  serial: 2
+  tasks:
+    - name: Batch task
+      debug:
+        msg: "Batch task by {{ inventory_hostname }}"
+
+# --- serial: [1, 3] — ramp-up: canary 1 first, then rest ---
+- name: Strategy — serial ramp-up [1, 3]
+  hosts: all
+  serial: [1, 3]
+  # Batch 1: 1 host (canary). If it passes, Batch 2: remaining 3 hosts.
+  tasks:
+    - name: Ramp-up task
+      debug:
+        msg: "Ramp-up task by {{ inventory_hostname }}"
+
+# --- any_errors_fatal demo ---
+- name: Strategy — serial 1 with any_errors_fatal
+  hosts: all
+  serial: 1
+  any_errors_fatal: true
+  # If any host fails, the entire play is aborted for ALL remaining hosts immediately.
+  # Without any_errors_fatal, only the failed host is skipped, others continue.
+  tasks:
+    - name: Task that would fail on one host
+      debug:
+        msg: "Running on {{ inventory_hostname }}"
+
+# Make a task fail on one host. With serial: 1, what happens?
+# → Play fails at that host. Remaining hosts are skipped for that batch.
+# Add any_errors_fatal: true. What changes?
+# → "No more hosts left" — all remaining hosts aborted immediately.
+
+# ansible-playbook 05_strategies.yml -i inventory/inventory_05.yml
+# ansible-playbook 05_strategies.yml -i inventory/inventory_05.yml --limit localhost_01
