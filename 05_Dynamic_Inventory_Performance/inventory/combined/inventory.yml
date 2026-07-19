@@ -1,0 +1,7 @@
+all:
+  vars:
+  hosts:
+    bastion:
+      ansible_connection: local
+      role: bastion
+      env: prod

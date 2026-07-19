@@ -1,0 +1,19 @@
+all:
+  vars:
+    ansible_connection: local
+  hosts:
+    web01:
+      env: prod
+      role: web
+    web02:
+      env: staging
+      role: web
+    db01:
+      env: prod
+      role: db
+    db02:
+      env: staging
+      role: db
+
+# ​ansible-inventory -i inventory/static/inventory.yml --graph
+# ansible-inventory -i inventory/static/inventory.yml --list​

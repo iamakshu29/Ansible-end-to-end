@@ -1,0 +1,29 @@
+- name: Async Tasks
+  gather_facts: false
+  become: true
+  var:
+  tasks:
+    - name: Run Sync command
+      command: sleep 5
+      delegate_to: localhost
+    
+    - name: Run Async command with polling status
+      command: sleep 40
+      async: 30
+      poll: 3
+
+    - name: Run Async command
+      command: uptime
+      poll: 0
+      register: cmd_output
+    
+    - name: Get output
+      debug:
+        msg: Doing some work while async tasks runs
+      
+    - name: Tutorial of async module
+      async_status:
+        jid: cmd_output
+        until: true
+        retries: 3
+        delay: 5

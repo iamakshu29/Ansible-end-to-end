@@ -1,0 +1,13 @@
+plugin: ansible.builtin.constructed
+sources: inventory/static/inventory.yml
+groups:
+  - production where env == "prod"
+  - staging where env == "staging"
+  - web_tier where role == "web"
+  - db_tier where role == "db"
+keyed_groups:
+compose:
+  - environment_label = env + '-' + role
+
+# ansible-inventory -i inventory/dynamic/constructed.yml --graph
+# ansible-inventory -i inventory/dynamic/constructed.yml --list

@@ -26,12 +26,14 @@ This phase teaches you how dynamic inventory works, how to practice it without c
 Both do the same job: give Ansible a list of hosts and their variables.
 
 **Inventory Script (old, avoid)**
+
 - A Python or bash script you write or download from somewhere
 - Ansible runs it as an executable and reads the JSON from stdout
 - You manage the script, its dependencies, and a separate config file
 - Still works but actively being replaced
 
 **Inventory Plugin (modern, use this always)**
+
 - A YAML config file with a `plugin:` key at the top
 - Ansible's built-in plugin code handles all the API calls for you
 - You only write the YAML config describing what to query and how to group results
@@ -41,17 +43,18 @@ Both do the same job: give Ansible a list of hosts and their variables.
 **Rule: use plugins. Forget scripts exist unless you're maintaining old code.**
 
 The most important plugins:
-| Plugin | What it queries |
-|---|---|
+
+| Plugin                          | What it queries                                   |
+| ------------------------------- | ------------------------------------------------- |
 | `ansible.builtin.constructed` | sits on top of any other source, adds groups/vars |
-| `ansible.builtin.yaml` | reads YAML inventory files |
-| `amazon.aws.aws_ec2` | queries AWS EC2 API |
-| `azure.azcollection.azure_rm` | queries Azure Resource Manager |
-| `google.cloud.gcp_compute` | queries GCP Compute Engine |
+| `ansible.builtin.yaml`        | reads YAML inventory files                        |
+| `amazon.aws.aws_ec2`          | queries AWS EC2 API                               |
+| `azure.azcollection.azure_rm` | queries Azure Resource Manager                    |
+| `google.cloud.gcp_compute`    | queries GCP Compute Engine                        |
 
 ---
 
-## The constructed plugin — NOT legacy, very important
+## The constructed plugin — very important
 
 The `ansible.builtin.constructed` plugin is one of the most used plugins in real deployments. Here is what it does:
 
@@ -169,6 +172,7 @@ The `ansible.cfg` controls defaults. Test one setting at a time.
 **Exercise — 03_performance_tuning.yml:**
 
 **Step 1 — Forks:**
+
 - `forks` in `[defaults]` controls how many hosts Ansible talks to simultaneously (default: 5)
 - Write a playbook that prints `inventory_hostname` for all 4 hosts
 - Change `forks` to `1` in `ansible.cfg` and run — tasks run one host at a time (serial)
@@ -176,17 +180,20 @@ The `ansible.cfg` controls defaults. Test one setting at a time.
 - On localhost the time difference is tiny. On 100 real remote hosts, `forks=1` is 10+ minutes, `forks=20` is under a minute.
 
 **Step 2 — Pipelining:**
+
 - `pipelining = True` in `[ssh_connection]` — already set in `ansible.cfg`
 - Pipelining has no visible effect with `ansible_connection: local` — it only matters over SSH
 - What it does: normally Ansible opens a new SSH connection to copy the module script, then another to run it. Pipelining pipes the script directly over one connection.
 - Run the playbook. Note it works. Understand the setting even if the difference is invisible here.
 
 **Step 3 — Disable fact gathering:**
+
 - Add a second play to `03_performance_tuning.yml` with `gather_facts: false`
 - Run it. Notice the "Gathering Facts" step is skipped entirely
 - On 100 hosts, fact gathering alone can take several minutes. Turning it off when facts are not needed is the single biggest speed win.
 
 **Step 4 — gather_subset:**
+
 - Instead of disabling facts entirely, use `gather_subset` to collect only what you need
 - Available subsets include: `network`, `hardware`, `virtual`, `facter`, `ohai`
 - Use `!all` and `!min` to turn off all defaults, then add only `network`
@@ -200,16 +207,19 @@ The `ansible.cfg` controls defaults. Test one setting at a time.
 **Exercise — 04_async_tasks.yml — build step by step:**
 
 **Step 1 — blocking task:**
+
 - Write a task that runs `sleep 5` using the `command` module with `delegate_to: localhost`
 - Run it. The play blocks for the full 5 seconds before moving on.
 
 **Step 2 — async with polling:**
+
 - Add `async: 30` and `poll: 3` to the same task
 - `async: 30` — allow the task up to 30 seconds to complete
 - `poll: 3` — check task status every 3 seconds
 - Run it. Ansible starts the task, checks in every 3 seconds, and waits for completion. You see the polling output.
 
 **Step 3 — fire and forget (poll: 0):**
+
 - Change `poll:` to `0` and `register:` the result into a variable
 - `poll: 0` means: start the task and immediately move on — do not wait
 - Add a `debug` task after it with a message like "doing other work while task runs"
@@ -233,6 +243,7 @@ The `ansible.cfg` controls defaults. Test one setting at a time.
 ## AWS EC2 plugin — understand the structure (reference, no AWS needed)
 
 The `amazon.aws.aws_ec2` plugin is the most common in real companies. Its config file (`aws_ec2.yml`) follows the exact same structure as `constructed.yml`:
+
 - `plugin: amazon.aws.aws_ec2`
 - `regions:` — which AWS regions to query
 - `filters:` — e.g., only running instances
@@ -273,6 +284,7 @@ Build a combined static + constructed setup and a playbook that reports on it.
 - `ansible.cfg` with `forks = 4`, pipelining enabled, inventory pointing to `./inventory/combined/`
 
 **Stretch goals:**
+
 - Add `compose` to set `ansible_user` differently per `env` value
 - Run `ansible-inventory --graph` and capture the group tree — verify every host is in the right groups before running the playbook
 
@@ -280,21 +292,21 @@ Build a combined static + constructed setup and a playbook that reports on it.
 
 ## Vocabulary to know
 
-| Term | Definition |
-|---|---|
-| dynamic inventory | host list built by querying a live system at runtime, not from a static file |
-| inventory plugin | a YAML config file that tells Ansible's built-in code how to query a source |
-| inventory script | old Python executable approach — outputs JSON, not recommended |
+| Term                   | Definition                                                                            |
+| ---------------------- | ------------------------------------------------------------------------------------- |
+| dynamic inventory      | host list built by querying a live system at runtime, not from a static file          |
+| inventory plugin       | a YAML config file that tells Ansible's built-in code how to query a source           |
+| inventory script       | old Python executable approach — outputs JSON, not recommended                       |
 | `constructed` plugin | built-in plugin that layers groups and variables on top of any other inventory source |
-| `groups:` | key in constructed plugin — create a named group based on a Jinja2 condition |
-| `keyed_groups:` | auto-create groups from all unique values of a variable or tag |
-| `compose:` | add computed variables to hosts using Jinja2 expressions |
-| `forks` | number of hosts Ansible works on in parallel |
-| `pipelining` | SSH optimization — batches module operations into fewer connections |
-| `gather_subset` | collect only specific categories of facts instead of everything |
-| `async` | run a task in the background, do not block the play |
-| `poll` | how often in seconds to check async task status; `0` = fire and forget |
-| `async_status` | module to check the result of a `poll: 0` task |
+| `groups:`            | key in constructed plugin — create a named group based on a Jinja2 condition         |
+| `keyed_groups:`      | auto-create groups from all unique values of a variable or tag                        |
+| `compose:`           | add computed variables to hosts using Jinja2 expressions                              |
+| `forks`              | number of hosts Ansible works on in parallel                                          |
+| `pipelining`         | SSH optimization — batches module operations into fewer connections                  |
+| `gather_subset`      | collect only specific categories of facts instead of everything                       |
+| `async`              | run a task in the background, do not block the play                                   |
+| `poll`               | how often in seconds to check async task status;`0` = fire and forget               |
+| `async_status`       | module to check the result of a`poll: 0` task                                       |
 
 ---
 

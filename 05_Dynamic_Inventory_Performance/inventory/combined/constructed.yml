@@ -1,0 +1,8 @@
+plugin: ansible.builtin.constructed
+sources: inventory/static/inventory.yml
+groups:
+  - production where env == "prod"
+  - staging where env == "staging"
+keyed_groups:
+
+# ansible-inventory -i inventory/combined/ --graph
