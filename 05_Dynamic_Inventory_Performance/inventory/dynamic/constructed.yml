@@ -1,6 +1,6 @@
 plugin: ansible.builtin.constructed
 sources: 
-  - inventory/static/inventory.yml
+  - ../static/inventory.yml
 
 groups:
   production: env == "prod"
