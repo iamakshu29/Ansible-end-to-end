@@ -1,8 +1,25 @@
-plugin: ansible.builtin.constructed
-sources: inventory/static/inventory.yml
-groups:
-  - production where env == "prod"
-  - staging where env == "staging"
-keyed_groups:
+plugin: constructed
 
-# ansible-inventory -i inventory/combined/ --graph
+# sources: 
+#   - ../static/inventory.yml
+# Note: 'sources:' requires ansible-core 2.12+. On Ansible 2.10, pass both
+# inventory files via separate -i flags instead (see run commands below).
+# ansible-inventory -i inventory/static/inventory.yml -i inventory/combined/ --graph
+
+groups:
+  production: env == "prod"
+  staging: env == "staging"
+  web_tier: role == "web"
+  db_tier: role == "db"
+
+keyed_groups:
+  - prefix: env
+    key: env
+  - prefix: role
+    key: role
+compose:
+  environment_label: env + '-' + role
+
+# ansible-inventory -i inventory/static/inventory.yml -i inventory/combined/ --graph
+# ansible-inventory -i inventory/static/inventory.yml -i inventory/combined/ --list
+

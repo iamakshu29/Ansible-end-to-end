@@ -1,5 +1,4 @@
 all:
-  vars:
   hosts:
     bastion:
       ansible_connection: local

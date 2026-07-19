@@ -161,10 +161,11 @@ Ansible merges ALL inventory sources found in a directory into one unified inven
 **Exercise — inventory/combined/:**
 
 - Create `inventory/combined/inventory.yml` with one static host `bastion`, using `ansible_connection: local`, and give it `role: bastion`, `env: prod`
-- Create `inventory/combined/constructed.yml` pointing `sources:` at `inventory/static/inventory.yml` — add `production` and `staging` groups, and keyed groups from `role`
-- Run: `ansible-inventory -i inventory/combined/ --graph`
-- Verify all 5 hosts appear (4 from the constructed source + bastion from the static file) and all groups are merged
-- This is how real environments work: static file for fixed infra (bastion, jump hosts), dynamic plugin for cloud hosts — all in one directory
+- Create `inventory/combined/constructed.yml` with `plugin: constructed` and your `groups:` and `keyed_groups:` rules — do NOT use `sources:` (not supported on Ansible 2.10)
+- Run: `ansible-inventory -i inventory/static/inventory.yml -i inventory/combined/ --graph`
+- How it works: Ansible loads sources left to right. `-i inventory/static/inventory.yml` loads web01/web02/db01/db02. `-i inventory/combined/` loads bastion (from inventory.yml) and then the constructed plugin sees ALL 5 hosts already in inventory and applies its groups to them.
+- Verify all 5 hosts appear and all groups are present — bastion will appear in `production` and `env_prod` because it has `env: prod`
+- This is how real environments work: static file for fixed infra (bastion, jump hosts), dynamic plugin for cloud hosts — combined via a directory or multiple `-i` flags
 
 ---
 
