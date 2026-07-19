@@ -1,0 +1,52 @@
+- name: Inventory Report - All hosts
+  hosts: all
+  gather_facts: false
+  tasks:
+    # gather_subset at play level is ignored in Ansible 2.10 — use setup module explicitly
+    - name: Collect only network facts
+      setup:
+        gather_subset:
+          - "!all"
+          - "!min"
+          - network
+
+    - name: Print inventory details per host
+      debug:
+        msg:
+          - "Inventory Hostname: {{ inventory_hostname }}"
+          - "Group Names: {{ group_names }}"
+          - "Environment Label: {{ environment_label }}"
+
+    # fire and forget async task — poll: 0 starts and immediately moves on
+    - name: Start async task (fire and forget)
+      command: sleep 5
+      async: 30
+      poll: 0
+      register: async_job
+      delegate_to: localhost
+
+    - name: Doing other work while async task runs in background
+      debug:
+        msg: "Async task started — doing other work now"
+
+    # async_status checks back using the job ID from the registered variable
+    # until/retries/delay are task-level directives, not async_status parameters
+    - name: Wait for async task to complete
+      async_status:
+        jid: "{{ async_job.ansible_job_id }}"
+      register: job_result
+      until: job_result.finished
+      retries: 10
+      delay: 3
+      delegate_to: localhost
+
+# Second play — runs ONLY against production group
+- name: Production group report
+  hosts: production
+  gather_facts: false
+  tasks:
+    - name: Print production server message
+      debug:
+        msg: "I am a production server: {{ inventory_hostname }}"
+
+# ansible-playbook -i inventory/static/inventory.yml -i inventory/combined/ project_inventory_report.yml

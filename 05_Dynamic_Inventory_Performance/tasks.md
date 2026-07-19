@@ -340,7 +340,7 @@ Build a combined static + constructed setup and a playbook that reports on it.
   - Prints `inventory_hostname`, `group_names`, `environment_label` for every host
   - Uses `gather_subset: ['!all', '!min', 'network']` (not full facts)
   - Has one async task (`sleep 5`, `poll: 0`) with a later `async_status` check
-  - Has a second play that runs ONLY against `production` group and prints a message
+  - Has a `second play` that runs ONLY against `production` group and prints a message
 - `ansible.cfg` with `forks = 4`, pipelining enabled, inventory pointing to `./inventory/combined/`
 
 **Stretch goals:**
