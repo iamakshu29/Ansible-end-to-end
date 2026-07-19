@@ -1,16 +1,15 @@
 - name: Testing Construcuted plugin
   hosts: all
   gather_facts: false
-  vars:
   tasks:
     - name: Print Hostnames
       debug:
-        name: "Hostname : {{ inventory_hostname }}"
+        msg: "Hostname : {{ inventory_hostname }}"
     - name: Print Group Names
       debug:
-        name: "Group Names : {{ group_names }}"
+        msg: "Group Names : {{ group_names }}"
     - name: Print environment_label
       debug:
-        name: "Environment Label : {{ environment_label }}"
+        msg: "Environment Label : {{ environment_label }}"
 
-# ansible-playbook -i inventory/dynamic/constructed.yml 02_constructed_plugin.yml
+# ansible-playbook -i inventory/static/inventory.yml -i inventory/dynamic/constructed.yml 02_constructed_plugin.yml
