@@ -1,29 +1,42 @@
 - name: Async Tasks
+  hosts: all
   gather_facts: false
-  become: true
-  var:
   tasks:
-    - name: Run Sync command
+    # Step 1 - blocking task: play waits the full 5 seconds before moving on
+    - name: Step 1 - Run blocking command
       command: sleep 5
       delegate_to: localhost
-    
-    - name: Run Async command with polling status
-      command: sleep 40
+
+    # Step 2 - async with polling: Ansible starts the task and checks every 3s
+    # async: 30 = allow up to 30s to complete | poll: 3 = check every 3 seconds
+    - name: Step 2 - Run async command with polling
+      command: sleep 5
       async: 30
       poll: 3
+      delegate_to: localhost
 
-    - name: Run Async command
-      command: uptime
+    # Step 3 - fire and forget: poll: 0 means start and immediately move on
+    # async: must be set when using poll: 0
+    - name: Step 3 - Fire and forget async task
+      command: sleep 10
+      async: 30
       poll: 0
       register: cmd_output
-    
-    - name: Get output
+      delegate_to: localhost
+
+    - name: Step 3 - Doing other work while async task runs in background
       debug:
-        msg: Doing some work while async tasks runs
-      
-    - name: Tutorial of async module
+        msg: "Doing some work while async task runs in background"
+
+    # async_status checks back on the job using its job ID (ansible_job_id)
+    # until/retries/delay are task-level directives, not async_status parameters
+    - name: Step 3 - Check async job status
       async_status:
-        jid: cmd_output
-        until: true
-        retries: 3
-        delay: 5
+        jid: "{{ cmd_output.ansible_job_id }}"
+      register: job_result
+      until: job_result.finished
+      retries: 10
+      delay: 3
+      delegate_to: localhost
+
+# ansible-playbook -i inventory/static/inventory.yml -i inventory/combined/ 04_async_tasks.yml

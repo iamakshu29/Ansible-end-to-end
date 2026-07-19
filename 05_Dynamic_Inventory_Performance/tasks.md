@@ -209,6 +209,61 @@ The `ansible.cfg` controls defaults. Test one setting at a time.
 
 ## Exercise 5 — Async tasks
 
+### Key concepts before writing the playbook
+
+**Why async tasks exist**
+
+By default every Ansible task is synchronous — Ansible starts a task on a host, waits for it to finish, then moves to the next task. If a task takes 5 minutes (a package install, a backup, a build), the entire playbook is blocked for those 5 minutes per host. On 50 hosts that multiplies badly.
+
+Async lets you start a slow task and move on immediately, then check back later.
+
+---
+
+**`async:`** — the maximum number of seconds you are willing to let the task run. If the task has not finished by this time Ansible kills it and marks it failed. You must always set this when using async. Think of it as a timeout.
+
+**`poll:`** — controls how Ansible waits for the async task.
+
+- `poll: N` (where N > 0) — Ansible checks the task status every N seconds and waits for it to finish. The play still blocks until done, but you can see polling output. Good for long tasks where you want progress feedback.
+- `poll: 0` — fire and forget. Ansible starts the task and immediately moves to the next task without waiting at all. The background task keeps running on the host. You are responsible for checking it later.
+
+**`register:`** — when using `poll: 0` you must register the result. The registered variable contains the job ID (`ansible_job_id`) which you need later to check the task status. Without registering, you have no way to know what happened to the background task.
+
+```yaml
+- name: Start background task
+  command: sleep 10
+  async: 30
+  poll: 0
+  register: my_job     # stores ansible_job_id among other things
+```
+
+**`async_status` module** — used to check the status of a background job started with `poll: 0`. It takes the job ID and returns whether the job has finished, succeeded, or failed.
+
+Key parameters and task-level directives used together:
+
+```yaml
+- name: Wait for background job to complete
+  async_status:
+    jid: "{{ my_job.ansible_job_id }}"   # job ID from the registered variable
+  register: job_result                   # stores the status result
+  until: job_result.finished             # keep retrying until finished is true
+  retries: 10                            # try up to 10 times
+  delay: 3                               # wait 3 seconds between retries
+```
+
+> `until:`, `retries:`, and `delay:` are **task-level directives** — they sit at the same indentation level as the module name, not inside `async_status:`. A common mistake is putting them inside the module parameters.
+
+**The full async pattern in one place:**
+
+```
+1. Start slow task with async + poll: 0 + register
+2. Do other work (debug, other tasks, etc.)
+3. Use async_status with the job ID to check back and wait for completion
+```
+
+If you skip step 3, the playbook reports success but the background task may still be running or may have silently failed. Always check back.
+
+---
+
 **Exercise — 04_async_tasks.yml — build step by step:**
 
 **Step 1 — blocking task:**
