@@ -125,8 +125,11 @@ Key facts about `constructed` before writing the config:
 
 - The config file starts with `plugin: ansible.builtin.constructed`
 - `sources:` — a list of inventory files or directories for the plugin to read hosts from
-- `groups:` — a dict of `group_name: "jinja2 condition"`. Any host where the condition is true joins that group.
-- `keyed_groups:` — auto-create groups from a variable's unique values. If `env` has values `prod` and `staging`, you get two groups automatically. Each entry needs `key:` (the variable), `prefix:`, and `separator:`.
+- `groups:` — a dictionary of `group_name: "jinja2 condition"`.
+  - Any host where the condition is true joins that group.
+- `keyed_groups:` — auto-create groups from a variable's unique values. 
+  - If `env` has values `prod` and `staging`, you get two groups automatically.
+  - Each entry needs `key:` (the variable), `prefix:`, and `separator:`.
 - `compose:` — add new computed variables to hosts using Jinja2 expressions
 
 **Exercise — inventory/dynamic/constructed.yml:**

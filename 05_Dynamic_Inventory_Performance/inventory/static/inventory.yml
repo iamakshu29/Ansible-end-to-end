@@ -15,5 +15,5 @@ all:
       env: staging
       role: db
 
-# ​ansible-inventory -i inventory/static/inventory.yml --graph
-# ansible-inventory -i inventory/static/inventory.yml --list​
+# ansible-inventory -i inventory/static/inventory.yml --graph
+# ansible-inventory -i inventory/static/inventory.yml --list
