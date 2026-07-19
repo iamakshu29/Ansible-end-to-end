@@ -160,7 +160,8 @@ Ansible merges ALL inventory sources found in a directory into one unified inven
 
 **Exercise — inventory/combined/:**
 
-- Create `inventory/combined/inventory.yml` with one static host `bastion`, using `ansible_connection: local`, and give it `role: bastion`, `env: prod`
+- Create `inventory/combined/bastion.yml` with one static host `bastion`, using `ansible_connection: local`, and give it `role: bastion`, `env: prod`
+  - **Important**: name the file `bastion.yml`, not `inventory.yml`. Ansible processes files in a directory alphabetically — `b` comes before `c`, so `bastion.yml` is loaded before `constructed.yml`. If the static file is loaded after the constructed plugin runs, hosts from it get no groups applied and land in `@ungrouped:`.
 - Create `inventory/combined/constructed.yml` with `plugin: constructed` and your `groups:` and `keyed_groups:` rules — do NOT use `sources:` (not supported on Ansible 2.10)
 - Run: `ansible-inventory -i inventory/static/inventory.yml -i inventory/combined/ --graph`
 - How it works: Ansible loads sources left to right. `-i inventory/static/inventory.yml` loads web01/web02/db01/db02. `-i inventory/combined/` loads bastion (from inventory.yml) and then the constructed plugin sees ALL 5 hosts already in inventory and applies its groups to them.
