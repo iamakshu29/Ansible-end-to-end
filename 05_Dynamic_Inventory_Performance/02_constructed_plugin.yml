@@ -11,6 +11,6 @@
         name: "Group Names : {{ group_names }}"
     - name: Print environment_label
       debug:
-        name: "Its left"
+        name: "Environment Label : {{ environment_label }}"
 
 # ansible-playbook -i inventory/dynamic/constructed.yml 02_constructed_plugin.yml

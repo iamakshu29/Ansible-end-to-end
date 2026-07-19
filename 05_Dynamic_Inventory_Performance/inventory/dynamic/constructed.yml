@@ -1,6 +1,10 @@
-plugin: ansible.builtin.constructed
-sources: 
-  - ../static/inventory.yml
+plugin: constructed
+
+# sources: 
+#   - ../static/inventory.yml
+# Note: 'sources:' requires ansible-core 2.12+. On Ansible 2.10, pass both
+# inventory files via separate -i flags instead (see run commands below).
+# ansible-inventory -i inventory/static/inventory.yml -i inventory/dynamic/constructed.yml --graph
 
 groups:
   production: env == "prod"
@@ -16,6 +20,6 @@ keyed_groups:
 compose:
   environment_label: env + '-' + role
 
-# ansible-inventory -i inventory/dynamic/constructed.yml --graph
-# ansible-inventory -i inventory/dynamic/constructed.yml --list
+# ansible-inventory -i inventory/static/inventory.yml -i inventory/dynamic/constructed.yml --graph
+# ansible-inventory -i inventory/static/inventory.yml -i inventory/dynamic/constructed.yml --list
 
