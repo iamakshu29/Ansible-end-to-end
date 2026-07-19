@@ -179,9 +179,9 @@ The `ansible.cfg` controls defaults. Test one setting at a time.
 **Step 1 — Forks:**
 
 - `forks` in `[defaults]` controls how many hosts Ansible talks to simultaneously (default: 5)
-- Write a playbook that prints `inventory_hostname` for all 4 hosts
+- Write a playbook that prints `inventory_hostname` for all 5 hosts
 - Change `forks` to `1` in `ansible.cfg` and run — tasks run one host at a time (serial)
-- Change `forks` to `4` and run — all 4 hosts run in parallel
+- Change `forks` to `5` and run — all 5 hosts run in parallel
 - On localhost the time difference is tiny. On 100 real remote hosts, `forks=1` is 10+ minutes, `forks=20` is under a minute.
 
 **Step 2 — Pipelining:**

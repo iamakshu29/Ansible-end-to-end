@@ -1,4 +1,23 @@
-- name: Testing Construcuted plugin
+# Step 1 & 2 - Print hostnames (used to test forks and pipelining)
+# Change forks in ansible.cfg to 1 then 4 and compare run output
+# ansible-playbook -i inventory/static/inventory.yml -i inventory/dynamic/constructed.yml 03_performance_tuning.yml
+- name: Step 1+2 - Print hostnames (forks and pipelining demo)
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Print Hostnames
+      debug:
+        msg: "Hostname : {{ inventory_hostname }}"
+    - name: Print Group Names
+      debug:
+        msg: "Group Names : {{ group_names }}"
+    - name: Print environment_label
+      debug:
+        msg: "Environment Label : {{ environment_label }}"
+
+# Step 3 - gather_facts: false
+# Notice: the 'Gathering Facts' task is completely absent from the output for this play
+- name: Step 3 - Same tasks with gather_facts disabled
   hosts: all
   gather_facts: false
   tasks:
@@ -12,4 +31,25 @@
       debug:
         msg: "Environment Label : {{ environment_label }}"
 
-# ansible-playbook -i inventory/static/inventory.yml -i inventory/combined/ 03_performance_tuning.yml
+# Step 4 - gather_subset: collect only network facts instead of disabling facts entirely
+# '!all' turns off all default subsets, '!min' turns off the minimal subset,
+# then 'network' adds back only network-related facts.
+# Result: ansible_interfaces, ansible_default_ipv4 etc. are available,
+# but ansible_facts['distribution'] is undefined because it needs the system subset.
+- name: Step 4 - gather_subset demo
+  hosts: all
+  gather_facts: true
+  gather_subset:
+    - "!all"
+    - "!min"
+    - network
+  tasks:
+    - name: Print only network facts collected
+      debug:
+        var: ansible_facts
+
+    - name: Confirm distribution is NOT available (needs system subset)
+      debug:
+        msg: "distribution = {{ ansible_facts['distribution'] | default('UNDEFINED - not collected') }}"
+
+# ansible-playbook -i inventory/static/inventory.yml -i inventory/dynamic/ 03_performance_tuning.yml
